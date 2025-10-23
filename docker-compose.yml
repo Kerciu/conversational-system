@@ -1,0 +1,46 @@
+services:
+  database:
+    env_file:
+      - .env
+    image: postgres:17-alpine
+    restart: always
+    container_name: database
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_LOCAL_PORT}:${POSTGRES_DOCKER_PORT}"
+
+  server:
+    env_file:
+      - .env
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "${BACKEND_PORT}:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      - database
+
+  client:
+    env_file:
+      - .env
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    depends_on:
+      - server
+
+volumes:
+  postgres_data:
