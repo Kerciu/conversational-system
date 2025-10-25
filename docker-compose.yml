@@ -18,7 +18,7 @@ services:
     env_file:
       - .env
     build:
-      context: ./server
+      context: ./backend-service
       dockerfile: Dockerfile
     restart: always
     ports:
@@ -29,6 +29,26 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       - database
+
+  agent-service:
+    env_file:
+      - .env
+    build:
+      context: ./agent-service
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "${AGENT_SERVICE_PORT}:3721"
+
+  sandbox-service:
+    env_file:
+      - .env
+    build:
+      context: ./sandbox-service
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "${SANDBOX_SERVICE_PORT}:2137"
 
   client:
     env_file:
