@@ -38,3 +38,15 @@ next-env.d.ts
 # java
 /target
 /wrapper
+
+# python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+env/
+*.env
+venv/
+ENV/
+.venv/
+env.bak/
