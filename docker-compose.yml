@@ -14,7 +14,20 @@ services:
     ports:
       - "${POSTGRES_LOCAL_PORT}:${POSTGRES_DOCKER_PORT}"
 
-  server:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    volumes:
+      - rabbitmq-lib:/var/lib/rabbitmq/
+
+  backend-service:
     env_file:
       - .env
     build:
@@ -24,11 +37,17 @@ services:
     ports:
       - "${BACKEND_PORT}:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database:${POSTGRES_DOCKER_PORT}/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
+
     depends_on:
       - database
+      - rabbitmq
 
   agent-service:
     env_file:
@@ -60,7 +79,9 @@ services:
     ports:
       - "${FRONTEND_PORT}:3000"
     depends_on:
-      - server
+      - backend-service
 
 volumes:
   postgres_data:
+  rabbitmq-lib:
+    driver: local
