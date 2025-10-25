@@ -27,6 +27,42 @@ services:
     volumes:
       - rabbitmq-lib:/var/lib/rabbitmq/
 
+  cache:
+    image: redis:7-alpine
+    container_name: cache
+    restart: always
+    ports:
+      - "6379:6379"
+
+  sandbox-service:
+    env_file:
+      - .env
+    build:
+      context: ./sandbox-service
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "${SANDBOX_SERVICE_PORT}:2137"
+    volumes:
+      - /dev/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - rabbitmq
+      - cache
+
+  agent-service:
+    env_file:
+      - .env
+    build:
+      context: ./agent-service
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "${AGENT_SERVICE_PORT}:3721"
+    depends_on:
+      - rabbitmq
+      - cache
+      - sandbox-service
+
   backend-service:
     env_file:
       - .env
@@ -45,29 +81,14 @@ services:
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
 
+      SPRING_REDIS_HOST: cache
+
     depends_on:
       - database
       - rabbitmq
-
-  agent-service:
-    env_file:
-      - .env
-    build:
-      context: ./agent-service
-      dockerfile: Dockerfile
-    restart: always
-    ports:
-      - "${AGENT_SERVICE_PORT}:3721"
-
-  sandbox-service:
-    env_file:
-      - .env
-    build:
-      context: ./sandbox-service
-      dockerfile: Dockerfile
-    restart: always
-    ports:
-      - "${SANDBOX_SERVICE_PORT}:2137"
+      - cache
+      - agent-service
+      - sandbox-service
 
   client:
     env_file:
