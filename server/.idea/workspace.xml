@@ -6,6 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="555ebd24-023f-46dc-a581-937133850759" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/conversational/system/application/Application.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/application.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/conversational/system/application/ApplicationTests.java" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -63,7 +66,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1761399628839</updated>
-      <workItem from="1761399629913" duration="1289000" />
+      <workItem from="1761399629913" duration="3218000" />
     </task>
     <servers />
   </component>

@@ -8,8 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-ENV FLASK_APP=app
-
-EXPOSE 3721
-
-CMD ["flask", "run"]
+CMD ["python", "worker.py"]
