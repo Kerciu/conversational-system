@@ -2,7 +2,6 @@ package com.conversational.system.application.job;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -14,7 +13,7 @@ public class JobService {
 
     private final RabbitTemplate rabbitTemplate;
 
-    @Value("${app.queue.request}")
+    @Value("${app.queue.code.request}")
     private String requestQueueName;
 
     public void submitJob(JobDescriptionDto jobDescriptionDto) {

@@ -6,7 +6,7 @@ load_dotenv()
 
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
 RABBITMQ_USER = os.getenv("RABBITMQ_USER", "guest")
-RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD", "guest")
+RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASS", "guest")
 
 RABBITMQ_IN_QUEUE = os.getenv("RABBITMQ_IN_QUEUE_SANDBOX", "code_execution_queue")
 RABBITMQ_OUT_QUEUE = os.getenv("RABBITMQ_OUT_QUEUE_SANDBOX", "code_results_queue")

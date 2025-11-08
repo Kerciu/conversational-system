@@ -26,6 +26,11 @@ services:
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
     volumes:
       - rabbitmq-lib:/var/lib/rabbitmq/
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   cache:
     image: redis:7-alpine
@@ -41,13 +46,21 @@ services:
       context: ./sandbox-service
       dockerfile: Dockerfile
     restart: always
+    environment:
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_IN_QUEUE_SANDBOX: ${RABBITMQ_IN_QUEUE_SANDBOX}
+      RABBITMQ_OUT_QUEUE_SANDBOX: ${RABBITMQ_OUT_QUEUE_SANDBOX}
     ports:
       - "${SANDBOX_SERVICE_PORT}:2137"
     volumes:
-      - /dev/run/docker.sock:/var/run/docker.sock
+      - ${DOCKER_SOCK_PATH}:/var/run/docker.sock
     depends_on:
-      - rabbitmq
-      - cache
+      rabbitmq:
+        condition: service_healthy
+      cache:
+        condition: service_started
 
   agent-service:
     env_file:
@@ -58,10 +71,15 @@ services:
     restart: always
     ports:
       - "${AGENT_SERVICE_PORT}:3721"
+    environment:
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_IN_QUEUE_AGENT: ${RABBITMQ_IN_QUEUE_AGENT}
+      RABBITMQ_OUT_QUEUE_AGENT: ${RABBITMQ_OUT_QUEUE_AGENT}
     depends_on:
-      - rabbitmq
-      - cache
-      - sandbox-service
+      rabbitmq:
+        condition: service_healthy
 
   backend-service:
     env_file:
@@ -77,9 +95,13 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
 
-      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_HOST: ${RABBITMQ_HOST}
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
+      RABBITMQ_IN_QUEUE_AGENT: ${RABBITMQ_IN_QUEUE_AGENT}
+      RABBITMQ_OUT_QUEUE_AGENT: ${RABBITMQ_OUT_QUEUE_AGENT}
+      RABBITMQ_IN_QUEUE_SANDBOX: ${RABBITMQ_IN_QUEUE_SANDBOX}
+      RABBITMQ_OUT_QUEUE_SANDBOX: ${RABBITMQ_OUT_QUEUE_SANDBOX}
 
       SPRING_REDIS_HOST: cache
 
