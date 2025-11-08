@@ -6,18 +6,24 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMQConfig {
-    public static final String REQUEST_QUEUE = "job_requests_queue";
-    public static final String REVIEW_QUEUE = "code_review_queue";
-    public static final String EXECUTION_QUEUE = "execution_queue";
-    public static final String RESULTS_QUEUE = "job_results_queue";
 
     @Bean
-    public Queue jobResultsQueue() {
-        return new Queue(RESULTS_QUEUE, true);
+    public Queue codeRequestQueue(@Value("${app.queue.code.request}") String queueName) {
+        return new Queue(queueName, true);
     }
 
     @Bean
-    public Queue codeReviewQueue() {
-        return new Queue(REVIEW_QUEUE, true);
+    public Queue codeReviewQueue(@Value("${app.queue.code.review}") String queueName) {
+        return new Queue(queueName, true);
+    }
+
+    @Bean
+    public Queue codeExecutionQueue(@Value("${app.queue.code.execution}") String queueName) {
+        return new Queue(queueName, true);
+    }
+
+    @Bean
+    public Queue codeResultsQueue(@Value("${app.queue.code.results}") String queueName) {
+        return new Queue(queueName, true);
     }
 }

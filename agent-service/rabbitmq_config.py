@@ -8,8 +8,8 @@ RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
 RABBITMQ_USER = os.getenv("RABBITMQ_USER", "guest")
 RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD", "guest")
 
-RABBITMQ_IN_QUEUE = os.getenv("RABBITMQ_IN_QUEUE", "job_results_queue")
-RABBITMQ_OUT_QUEUE = os.getenv("RABBITMQ_OUT_QUEUE", "code_review_queue")
+RABBITMQ_IN_QUEUE = os.getenv("RABBITMQ_IN_QUEUE_AGENT", "code_request_queue")
+RABBITMQ_OUT_QUEUE = os.getenv("RABBITMQ_OUT_QUEUE_AGENT", "code_review_queue")
 
 
 def connect_rabbitmq():

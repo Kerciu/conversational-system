@@ -8,7 +8,7 @@ import java.util.Map;
 @Component
 public class ResultsListener {
 
-    @RabbitListener(queues = "job_results_queue")
+    @RabbitListener(queues = "${app.queue.code.results}")
     public void receiveJobResults(Map<String, String> resultMessage) {
         System.out.println("Got result for job: " + resultMessage.get("jobId"));
         System.out.println("Status: " + resultMessage.get("status"));
