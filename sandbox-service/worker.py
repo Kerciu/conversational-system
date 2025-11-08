@@ -13,7 +13,7 @@ def start_worker():
             channel.basic_consume(
                 queue=RABBITMQ_IN_QUEUE,
                 on_message_callback=callback,
-                auto_ack=True
+                auto_ack=False
             )
 
             channel.start_consuming()
