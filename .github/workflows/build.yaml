@@ -141,7 +141,7 @@ jobs:
 
   build-docker:
     runs-on: ubuntu-latest
-    needs: [backend-ci, frontend-ci]
+    needs: [backend-ci, frontend-ci, setup-env]
 
     env:
       ENV_FILE_CONTENT: ${{ needs.setup-env.outputs.env-file-content }}
