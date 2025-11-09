@@ -59,6 +59,14 @@ jobs:
           SPRING_DATASOURCE_USERNAME: user
           SPRING_DATASOURCE_PASSWORD: password
           SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+          RABBITMQ_USER: dummy
+          RABBITMQ_PASS: dummy
+          RABBITMQ_IN_QUEUE_AGENT: "test-queue-1"
+          RABBITMQ_OUT_QUEUE_AGENT: "test-queue-2"
+          RABBITMQ_IN_QUEUE_SANDBOX: "test-queue-3"
+          RABBITMQ_OUT_QUEUE_SANDBOX: "test-queue-4"
+          RABBITMQ_HOST: "localhost"
+          SPRING_REDIS_HOST: "localhost"
 
   frontend-ci:
     runs-on: ubuntu-latest
