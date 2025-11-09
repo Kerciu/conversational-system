@@ -76,10 +76,7 @@ jobs:
         run: echo "$ENV_FILE_CONTENT" > .env
 
       - name: Load environment variables
-        run: |
-          set -o allexport
-          source .env
-          set +o allexport
+        run: cat .env >> $GITHUB_ENV
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -112,10 +109,7 @@ jobs:
         run: echo "$ENV_FILE_CONTENT" > .env
 
       - name: Load environment variables
-        run: |
-          set -o allexport
-          source .env
-          set +o allexport
+        run: cat .env >> $GITHUB_ENV
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
