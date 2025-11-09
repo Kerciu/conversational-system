@@ -15,11 +15,13 @@ jobs:
   setup-env:
     runs-on: ubuntu-latest
     outputs:
-      artifact-name: shared-env
+      env-file-content: ${{ steps.create-env.outputs.env-file }}
     steps:
-      - name: Create .env file
+      - name: Create .env content
+        id: create-env
         run: |
-          cat <<EOF > .env
+          echo "env-file<<EOF" >> $GITHUB_OUTPUT
+          cat <<EOF >> $GITHUB_OUTPUT
           POSTGRES_USER=dummy_user
           POSTGRES_PASSWORD=dummy_password
           POSTGRES_DB=dummy_db
@@ -43,16 +45,14 @@ jobs:
           RABBITMQ_HOST=localhost
           SPRING_REDIS_HOST=localhost
           EOF
-
-      - name: Upload .env artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: shared-env
-          path: .env
+          echo "EOF" >> $GITHUB_OUTPUT
 
   backend-ci:
     runs-on: ubuntu-latest
     needs: setup-env
+
+    env:
+      ENV_FILE_CONTENT: ${{ needs.setup-env.outputs.env-file-content }}
 
     services:
       postgres:
@@ -71,11 +71,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Download .env
-        uses: actions/download-artifact@v4
-        with:
-          name: shared-env
-          path: ./
+
+      - name: Create .env file from output
+        run: echo "$ENV_FILE_CONTENT" > .env
 
       - name: Load environment variables
         run: |
@@ -103,13 +101,21 @@ jobs:
   frontend-ci:
     runs-on: ubuntu-latest
     needs: setup-env
+
+    env:
+      ENV_FILE_CONTENT: ${{ needs.setup-env.outputs.env-file-content }}
+
     steps:
       - uses: actions/checkout@v4
-      - name: Download .env
-        uses: actions/download-artifact@v4
-        with:
-          name: shared-env
-          path: ./
+
+      - name: Create .env file from output
+        run: echo "$ENV_FILE_CONTENT" > .env
+
+      - name: Load environment variables
+        run: |
+          set -o allexport
+          source .env
+          set +o allexport
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -139,13 +145,15 @@ jobs:
   build-docker:
     runs-on: ubuntu-latest
     needs: [backend-ci, frontend-ci]
+
+    env:
+      ENV_FILE_CONTENT: ${{ needs.setup-env.outputs.env-file-content }}
+
     steps:
       - uses: actions/checkout@v4
-      - name: Download .env
-        uses: actions/download-artifact@v4
-        with:
-          name: shared-env
-          path: ./
+
+      - name: Create .env file from output
+        run: echo "$ENV_FILE_CONTENT" > .env
 
       - name: Configure Docker Buildx
         uses: docker/setup-buildx-action@v3
