@@ -1,11 +1,10 @@
 package com.conversational.system.application.coding;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -23,6 +22,17 @@ public class CodingController {
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "Error submitting job: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("get")
+    public ResponseEntity<?> get(@RequestBody CodingResultsDto resultsDto) {
+        Object result = codingService.getCodeExecutionResult(resultsDto.getJobId());
+        if (result != null) {
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.status(HttpStatus.ACCEPTED)
+                    .body(Map.of("status", "pending"));
         }
     }
 }
