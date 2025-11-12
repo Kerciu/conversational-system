@@ -10,10 +10,12 @@ def start_worker():
             _, channel = connect_rabbitmq()
             print("Connected to RabbitMQ successfully, waiting for tasks...")
 
+            channel.basic_qos(prefetch_count=1)
+
             channel.basic_consume(
                 queue=RABBITMQ_IN_QUEUE,
                 on_message_callback=callback,
-                auto_ack=True
+                auto_ack=False
             )
 
             channel.start_consuming()
