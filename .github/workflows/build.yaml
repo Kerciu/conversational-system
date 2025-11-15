@@ -69,9 +69,7 @@ jobs:
 
       - name: Run Ruff Linter
         run: |
-          # Sprawdza błędy lintingowe
           ruff check ./agent-service
-          # Sprawdza błędy formatowania
           ruff format --check ./agent-service
 
       - name: Run tests with pytest
