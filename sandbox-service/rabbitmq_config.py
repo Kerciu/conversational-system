@@ -13,10 +13,10 @@ RABBITMQ_OUT_QUEUE = os.getenv("RABBITMQ_OUT_QUEUE_SANDBOX", "code_results_queue
 
 
 def connect_rabbitmq():
-    credentails = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
+    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
 
     parameters = pika.ConnectionParameters(
-        host=RABBITMQ_HOST, credentials=credentails
+        host=RABBITMQ_HOST, credentials=credentials
     )
     connection = pika.BlockingConnection(parameters=parameters)
 
