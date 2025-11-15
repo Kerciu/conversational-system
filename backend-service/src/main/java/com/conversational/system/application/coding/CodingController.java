@@ -9,13 +9,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("api/test")
+@RequestMapping("/api/test")
 @RequiredArgsConstructor
 public class CodingController {
 
     private final CodingService codingService;
 
-    @PostMapping("execute")
+    @PostMapping("/execute")
     public ResponseEntity<Map<String, String>> execute(@RequestBody CodingExecutionDto executionDto) {
         try {
             Map<String, String> result = codingService.executeCode(executionDto.getCode());
@@ -25,7 +25,7 @@ public class CodingController {
         }
     }
 
-    @GetMapping("get")
+    @GetMapping("/get")
     public ResponseEntity<?> get(@RequestBody CodingResultsDto resultsDto) {
         Object result = codingService.getCodeExecutionResult(resultsDto.getJobId());
         if (result != null) {
