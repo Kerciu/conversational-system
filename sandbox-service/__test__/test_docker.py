@@ -33,44 +33,43 @@ def real_sandbox(real_docker_client):
         image=image_name,
         timeout=10,
         memory_limit="256m",
-        pids_limit=100
+        pids_limit=100,
     )
     return sandbox
 
 
 @pytest.mark.real_docker
 class TestCodeSandboxIntegration:
-
     def test_sandbox_run_success(self, real_sandbox):
         code = "print('hello world', end='')"
         result = real_sandbox.run(code)
         assert result.status == ExecutionStatus.CODE_EXECUTED
         assert result.status_code == 0
-        assert result.stdout == 'hello world'
-        assert result.stderr == ''
+        assert result.stdout == "hello world"
+        assert result.stderr == ""
 
     def test_sandbox_run_failure_exit_code(self, real_sandbox):
         code = "import sys; sys.exit(42)"
         result = real_sandbox.run(code)
         assert result.status == ExecutionStatus.CODE_FAILED
         assert result.status_code == 42
-        assert result.stdout == ''
-        assert result.stderr == ''
+        assert result.stdout == ""
+        assert result.stderr == ""
 
     def test_sandbox_run_stderr_output(self, real_sandbox):
         code = "import sys; sys.stderr.write('error msg'); sys.exit(1)"
         result = real_sandbox.run(code)
         assert result.status == ExecutionStatus.CODE_FAILED
         assert result.status_code == 1
-        assert result.stdout == ''
-        assert result.stderr == 'error msg'
+        assert result.stdout == ""
+        assert result.stderr == "error msg"
 
     def test_sandbox_run_timeout(self, real_docker_client):
         timeout_sandbox = CodeSandbox(
             client=real_docker_client,
             image="python:3.13-slim",
             timeout=1,
-            memory_limit="64m"
+            memory_limit="64m",
         )
         code = "import time; time.sleep(3)"
         result = timeout_sandbox.run(code)
@@ -85,10 +84,7 @@ class TestCodeSandboxIntegration:
 
 def test_code_execution_result_to_dict():
     result = CodeExecutionResult(
-        status_code=0,
-        stdout="out",
-        stderr="err",
-        status=ExecutionStatus.CODE_EXECUTED
+        status_code=0, stdout="out", stderr="err", status=ExecutionStatus.CODE_EXECUTED
     )
     expected_dict = {
         "statusCode": 0,
@@ -131,7 +127,6 @@ def mock_callback_deps():
 
 
 class TestCallbackFunction:
-
     def test_callback_success(self, mock_callback_deps, mocker):
         mock_ch, mock_method, mock_props = mock_callback_deps
 
@@ -139,11 +134,11 @@ class TestCallbackFunction:
             status_code=0,
             stdout="it works",
             stderr="",
-            status=ExecutionStatus.CODE_EXECUTED
+            status=ExecutionStatus.CODE_EXECUTED,
         )
         mock_sandbox = MagicMock(spec=CodeSandbox)
         mock_sandbox.run.return_value = mock_result
-        mocker.patch('callback.sandbox', mock_sandbox)
+        mocker.patch("callback.sandbox", mock_sandbox)
 
         body_data = {"jobId": "job-123", "code": "print('ok')"}
         body_json = json.dumps(body_data)
@@ -156,11 +151,11 @@ class TestCallbackFunction:
         mock_ch.basic_publish.assert_called_once()
 
         publish_args = mock_ch.basic_publish.call_args[1]
-        published_body = json.loads(publish_args['body'])
+        published_body = json.loads(publish_args["body"])
 
-        assert published_body['jobId'] == 'job-123'
-        assert published_body['status'] == 'CODE_EXECUTED'
-        assert published_body['generatedCode']['stdout'] == 'it works'
+        assert published_body["jobId"] == "job-123"
+        assert published_body["status"] == "CODE_EXECUTED"
+        assert published_body["generatedCode"]["stdout"] == "it works"
 
     def test_callback_sandbox_fail(self, mock_callback_deps, mocker):
         mock_ch, mock_method, mock_props = mock_callback_deps
@@ -169,11 +164,11 @@ class TestCallbackFunction:
             status_code=1,
             stdout="",
             stderr="it broke",
-            status=ExecutionStatus.CODE_FAILED
+            status=ExecutionStatus.CODE_FAILED,
         )
         mock_sandbox = MagicMock(spec=CodeSandbox)
         mock_sandbox.run.return_value = mock_result
-        mocker.patch('callback.sandbox', mock_sandbox)
+        mocker.patch("callback.sandbox", mock_sandbox)
 
         body_data = {"jobId": "job-456", "code": "1/0"}
         body_json = json.dumps(body_data)
@@ -185,14 +180,14 @@ class TestCallbackFunction:
         mock_ch.basic_nack.assert_not_called()
         mock_ch.basic_publish.assert_called_once()
 
-        published_body = json.loads(mock_ch.basic_publish.call_args[1]['body'])
-        assert published_body['status'] == 'CODE_FAILED'
-        assert published_body['generatedCode']['stderr'] == 'it broke'
+        published_body = json.loads(mock_ch.basic_publish.call_args[1]["body"])
+        assert published_body["status"] == "CODE_FAILED"
+        assert published_body["generatedCode"]["stderr"] == "it broke"
 
     def test_callback_invalid_message_body(self, mock_callback_deps, mocker):
         mock_ch, mock_method, mock_props = mock_callback_deps
         mock_sandbox = MagicMock(spec=CodeSandbox)
-        mocker.patch('callback.sandbox', mock_sandbox)
+        mocker.patch("callback.sandbox", mock_sandbox)
 
         body_json = json.dumps({"foo": "bar"})
 
@@ -206,7 +201,7 @@ class TestCallbackFunction:
     def test_callback_json_decode_error(self, mock_callback_deps, mocker):
         mock_ch, mock_method, mock_props = mock_callback_deps
         mock_sandbox = MagicMock(spec=CodeSandbox)
-        mocker.patch('callback.sandbox', mock_sandbox)
+        mocker.patch("callback.sandbox", mock_sandbox)
 
         body_invalid_json = "{not json"
 
@@ -219,7 +214,7 @@ class TestCallbackFunction:
 
     def test_callback_sandbox_disabled(self, mock_callback_deps, mocker):
         mock_ch, mock_method, mock_props = mock_callback_deps
-        mocker.patch('callback.sandbox', None)
+        mocker.patch("callback.sandbox", None)
 
         body_data = {"jobId": "job-123", "code": "print('ok')"}
         body_json = json.dumps(body_data)

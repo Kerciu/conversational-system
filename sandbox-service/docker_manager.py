@@ -2,7 +2,6 @@ import docker
 
 
 class DockerManager:
-
     def __init__(self):
         self.client = self._initialize_client()
 
@@ -18,5 +17,6 @@ class DockerManager:
                 """
                   Make sure /var/run/docker.sock is accessible
                   and Docker is installed and running.
-                """)
+                """
+            )
             return None

@@ -13,9 +13,7 @@ def start_worker():
             channel.basic_qos(prefetch_count=1)
 
             channel.basic_consume(
-                queue=RABBITMQ_IN_QUEUE,
-                on_message_callback=callback,
-                auto_ack=False
+                queue=RABBITMQ_IN_QUEUE, on_message_callback=callback, auto_ack=False
             )
 
             channel.start_consuming()
