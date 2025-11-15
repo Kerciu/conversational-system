@@ -50,3 +50,5 @@ venv/
 ENV/
 .venv/
 env.bak/
+.pytest_cache/
+.ruff_cache/
