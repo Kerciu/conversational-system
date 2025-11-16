@@ -14,21 +14,103 @@ services:
     ports:
       - "${POSTGRES_LOCAL_PORT}:${POSTGRES_DOCKER_PORT}"
 
-  server:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    volumes:
+      - rabbitmq-lib:/var/lib/rabbitmq/
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cache:
+    image: redis:7-alpine
+    container_name: cache
+    restart: always
+    ports:
+      - "6379:6379"
+
+  sandbox-service:
     env_file:
       - .env
     build:
-      context: ./server
+      context: ./sandbox-service
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_IN_QUEUE_SANDBOX: ${RABBITMQ_IN_QUEUE_SANDBOX}
+      RABBITMQ_OUT_QUEUE_SANDBOX: ${RABBITMQ_OUT_QUEUE_SANDBOX}
+    ports:
+      - "${SANDBOX_SERVICE_PORT}:2137"
+    volumes:
+      - ${DOCKER_SOCK_PATH}:/var/run/docker.sock
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      cache:
+        condition: service_started
+
+  agent-service:
+    env_file:
+      - .env
+    build:
+      context: ./agent-service
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "${AGENT_SERVICE_PORT}:3721"
+    environment:
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASS: ${RABBITMQ_PASS}
+      RABBITMQ_IN_QUEUE_AGENT: ${RABBITMQ_IN_QUEUE_AGENT}
+      RABBITMQ_OUT_QUEUE_AGENT: ${RABBITMQ_OUT_QUEUE_AGENT}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  backend-service:
+    env_file:
+      - .env
+    build:
+      context: ./backend-service
       dockerfile: Dockerfile
     restart: always
     ports:
       - "${BACKEND_PORT}:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database:${POSTGRES_DOCKER_PORT}/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+
+      SPRING_RABBITMQ_HOST: ${RABBITMQ_HOST}
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS}
+      RABBITMQ_IN_QUEUE_AGENT: ${RABBITMQ_IN_QUEUE_AGENT}
+      RABBITMQ_OUT_QUEUE_AGENT: ${RABBITMQ_OUT_QUEUE_AGENT}
+      RABBITMQ_IN_QUEUE_SANDBOX: ${RABBITMQ_IN_QUEUE_SANDBOX}
+      RABBITMQ_OUT_QUEUE_SANDBOX: ${RABBITMQ_OUT_QUEUE_SANDBOX}
+
+      SPRING_REDIS_HOST: cache
+
     depends_on:
       - database
+      - rabbitmq
+      - cache
+      - agent-service
+      - sandbox-service
 
   client:
     env_file:
@@ -40,7 +122,9 @@ services:
     ports:
       - "${FRONTEND_PORT}:3000"
     depends_on:
-      - server
+      - backend-service
 
 volumes:
   postgres_data:
+  rabbitmq-lib:
+    driver: local
