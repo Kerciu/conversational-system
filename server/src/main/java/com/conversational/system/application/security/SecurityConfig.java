@@ -53,10 +53,6 @@ public class SecurityConfig {
     
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
-        System.out.println("JwtFilter instance: " + jwtFilter);
-        if (jwtFilter == null) {
-            System.err.println("ERROR: jwtFilter is NULL!");
-        }
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -54,22 +54,6 @@ public class AuthenticationService {
         }
     }
 
-    public String authenticateOAuth2User(Authentication authentication){
-        if (!(authentication instanceof OAuth2AuthenticationToken)) 
-                throw new RuntimeException("Expected OAuth2AuthenticationToken but received: " + authentication.getClass().getSimpleName());
-
-            try {
-                OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-                User user = findOrCreateOauthUser(oAuth2User.getAttribute("email"), oAuth2User.getName());
-                return jwtService.generateJWToken(user.getUsername());
-            }
-            catch (OAuth2AuthenticationException e) {
-                throw e;
-            }
-            catch (Exception e) {
-                throw new RuntimeException("Exception occured during OAuth2 authentication process.\n" +e.getMessage());
-            }
-    }
     
     private void verifyEmail(String email) {
         String emailRegex = "^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$";
@@ -84,16 +68,6 @@ public class AuthenticationService {
         if (userOptionalUsername.isPresent()) throw new RuntimeException("Username " + username + " already taken.");
     }
     
-    private User findOrCreateOauthUser(String email, String username) {
-        return userRepository.findByEmail(email)
-                .orElseGet(() -> {
-                    verifyEmail(email);
-                    verifyUsernameEmailAreUnique(username, email);
-                    User newUser = new User(email, username, null);
-                    return userRepository.save(newUser);
-                });
-    }
-
     private void sendVerificationEmail(User user) {
         // to be implemented 
     }
