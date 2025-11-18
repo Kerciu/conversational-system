@@ -21,7 +21,8 @@ import lombok.RequiredArgsConstructor;
 public class OAuth2Service {
     private final OAuth2AuthorizedClientService authorizedClientService;
     private static final String GITHUB_EMAILS_API_URL = "https://api.github.com/user/emails";
-    
+    private final RestTemplate restTemplate;
+
 
     public String extractEmail(OAuth2User oAuth2User, String provider, String principalName) {
         return switch (provider.toLowerCase()) {
@@ -72,7 +73,6 @@ public class OAuth2Service {
         headers.setBearerAuth(accessToken);
         HttpEntity<?> entity = new HttpEntity<>(headers);
         
-        RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
             GITHUB_EMAILS_API_URL,
             HttpMethod.GET,
