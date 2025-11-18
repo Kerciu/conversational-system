@@ -66,10 +66,9 @@ public class SecurityConfig {
                     .requestMatchers(
                         "/api/auth/register", 
                         "/api/auth/login",
-                        "/api/auth/oauth/success",
-                        "/api/auth/oauth2/success", // <-- POPRAWIONO
-                        "/oauth2/**",               // <-- Dodano dla pewności
-                        "/login/**"                 // <-- Dodano dla pewności
+                        "/api/auth/oauth2/success", 
+                        "/oauth2/**",               
+                        "/login/**"                 
                         )
                         .permitAll()
                     .anyRequest().authenticated())
