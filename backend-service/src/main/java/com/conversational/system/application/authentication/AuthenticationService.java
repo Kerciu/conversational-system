@@ -62,7 +62,7 @@ public class AuthenticationService {
 
             try {
                 OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-                String provider = oAuth2Token.getAuthorizedClientRegistrationId(); // "google" lub "github"
+                String provider = oAuth2Token.getAuthorizedClientRegistrationId(); // "google" or "github"
 
                 String email = oauth2Service.extractEmail(oAuth2User, provider, oAuth2Token.getName());
                 String username = oauth2Service.extractUsername(oAuth2User, provider);     
