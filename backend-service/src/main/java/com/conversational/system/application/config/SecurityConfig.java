@@ -60,8 +60,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests((request) -> request
                     .requestMatchers(
                         "/api/auth/register", 
-                        "/api/auth/login",
-                        "/api/auth/google"
+                        "/api/auth/login"
                         )
                         .permitAll()
                     .anyRequest().authenticated())
