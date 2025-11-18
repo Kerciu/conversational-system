@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import com.conversational.system.application.authentication.AuthenticationService;
 import com.conversational.system.application.controllers.requests.LoginRequest;
 import com.conversational.system.application.controllers.requests.RegisterRequest;
-import com.conversational.system.application.security.AuthenticationService;
 
 import lombok.RequiredArgsConstructor;
 

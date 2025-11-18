@@ -19,12 +19,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.conversational.system.application.authentication.AuthenticationService;
 import com.conversational.system.application.entities.user.User;
 import com.conversational.system.application.entities.user.UserRepository;
-import com.conversational.system.application.security.AuthenticationService;
 
 @ExtendWith(MockitoExtension.class)
-public class AuthenticationServiceRegistrationTests {
+public class RegistrationTests {
     @Mock
     private UserRepository userRepository;
 

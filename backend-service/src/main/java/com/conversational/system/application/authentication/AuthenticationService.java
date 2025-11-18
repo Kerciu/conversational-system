@@ -1,4 +1,4 @@
-package com.conversational.system.application.security;
+package com.conversational.system.application.authentication;
 import java.util.Optional;
 
 import org.springframework.security.authentication.AuthenticationManager;
@@ -9,9 +9,9 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.conversational.system.application.authentication.json_web_token.JwtService;
 import com.conversational.system.application.entities.user.User;
 import com.conversational.system.application.entities.user.UserRepository;
-import com.conversational.system.application.security.json_web_token.JwtService;
 import com.google.api.client.util.Value;
 
 import lombok.RequiredArgsConstructor;

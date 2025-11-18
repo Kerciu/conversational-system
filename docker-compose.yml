@@ -14,11 +14,11 @@ services:
     ports:
       - "${POSTGRES_LOCAL_PORT}:${POSTGRES_DOCKER_PORT}"
 
-  server:
+  backend-service:
     env_file:
       - .env
     build:
-      context: ./server
+      context: ./backend-service
       dockerfile: Dockerfile
     restart: always
     ports:
@@ -40,7 +40,7 @@ services:
     ports:
       - "${FRONTEND_PORT}:3000"
     depends_on:
-      - server
+      - backend-service
 
 volumes:
   postgres_data:

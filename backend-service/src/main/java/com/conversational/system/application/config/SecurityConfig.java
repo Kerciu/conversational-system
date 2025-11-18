@@ -1,4 +1,4 @@
-package com.conversational.system.application.security;
+package com.conversational.system.application.config;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -18,7 +18,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.conversational.system.application.security.json_web_token.JwtFilter;
+import com.conversational.system.application.authentication.json_web_token.JwtFilter;
 
 import lombok.RequiredArgsConstructor;
 

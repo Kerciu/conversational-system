@@ -1,4 +1,4 @@
-package com.conversational.system.application.security.custom_user_details;
+package com.conversational.system.application.authentication.custom_user_details;
 
 import java.util.Collection;
 import java.util.Collections;

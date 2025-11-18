@@ -1,4 +1,4 @@
-package com.conversational.system.application.security.json_web_token;
+package com.conversational.system.application.authentication.json_web_token;
 
 import org.springframework.web.filter.OncePerRequestFilter;
 

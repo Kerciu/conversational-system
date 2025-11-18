@@ -19,11 +19,11 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 
-import com.conversational.system.application.security.AuthenticationService;
-import com.conversational.system.application.security.json_web_token.JwtService;
+import com.conversational.system.application.authentication.AuthenticationService;
+import com.conversational.system.application.authentication.json_web_token.JwtService;
 
 @ExtendWith(MockitoExtension.class)
-public class AuthenticationServiceLoginTests {
+public class LoginTests {
     @Mock
     private AuthenticationManager authenticationManager;
 
