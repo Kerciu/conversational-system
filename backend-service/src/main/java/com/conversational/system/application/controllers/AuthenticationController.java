@@ -43,7 +43,6 @@ public class AuthenticationController {
 
     @GetMapping("/oauth2/success")
     public ResponseEntity<String> authenticateWithGoogle(Authentication authentication) {
-        System.out.println("/oauth2/success controller");
         try{
             String token = authenticationService.authenticateOAuth2User(authentication);
             return ResponseEntity.status(HttpStatus.OK).body(token);

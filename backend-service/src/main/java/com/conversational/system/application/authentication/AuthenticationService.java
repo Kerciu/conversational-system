@@ -57,7 +57,6 @@ public class AuthenticationService {
     }
     
     public String authenticateOAuth2User(Authentication authentication){
-        System.out.println("OAuth2 Authentication");
         if (!(authentication instanceof OAuth2AuthenticationToken oAuth2Token)) 
                 throw new RuntimeException("Expected OAuth2AuthenticationToken but received: " + authentication.getClass().getSimpleName());
 
