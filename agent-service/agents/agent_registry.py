@@ -1,4 +1,4 @@
-from agent import Agent, ModelerAgent
+from .agent import Agent, ModelerAgent
 import enum
 
 
