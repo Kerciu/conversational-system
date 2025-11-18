@@ -34,7 +34,6 @@ public class JwtFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain filterChain) throws IOException, ServletException {
         
         String authenticationHeader = request.getHeader(AUTH_HEADER_NAME);
-
         if (!hasValidAuthorizationHeader(authenticationHeader)) {
             filterChain.doFilter(request, response);
             return;
@@ -58,7 +57,15 @@ public class JwtFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();                      // Używamy getRequestURI()
+        return path.startsWith("/api/auth/register")
+                || path.startsWith("/api/auth/login")
+                || path.startsWith("/api/auth/oauth2/success") // Ujednolicona nazwa
+                || path.startsWith("/oauth2")
+                || path.startsWith("/login");
+    }
 
     private boolean hasValidAuthorizationHeader(String authenticationHeader) {
         return authenticationHeader != null && authenticationHeader.startsWith(AUTH_HEADER_PREFIX);
