@@ -20,7 +20,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class OAuth2Service {
     private final OAuth2AuthorizedClientService authorizedClientService;
+    private static final String GITHUB_EMAILS_API_URL = "https://api.github.com/user/emails";
     
+
     public String extractEmail(OAuth2User oAuth2User, String provider, String principalName) {
         return switch (provider.toLowerCase()) {
             case "google"    -> oAuth2User.getAttribute("email");
@@ -37,68 +39,64 @@ public class OAuth2Service {
         };
         
         String username = oAuth2User.getAttribute(attributeName);
-        return username != null ? username : oAuth2User.getName();
+        return username != null ? username : oAuth2User.getName(); // Fallback to default name if 'name' attribute is missing
     }
 
-
     private String fetchGitHubPrimaryEmail(String registrationId, String principalName, OAuth2User oAuth2User) {
+        /* Retrieves the primary email from GitHub OAuth2 authentication.
+        * Unlike Google, GitHub does not include email in the default OAuth2User attributes.
+        * We must make a separate API call to /user/emails endpoint to fetch all emails,
+        * then extract the primary one from the returned list. */
         try {
-            OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(registrationId, principalName);
-            
-            if (client == null) {
-                throw new RuntimeException(
-                    "Nie można pobrać access tokena GitHub dla użytkownika: " + principalName
-                );
-            }
-            
-            String accessToken = client.getAccessToken().getTokenValue();
-            
-            RestTemplate restTemplate = new RestTemplate();
-            HttpHeaders headers = new HttpHeaders();
-            headers.setBearerAuth(accessToken);
-            HttpEntity<?> entity = new HttpEntity<>(headers);
-            
-            ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
-                "https://api.github.com/user/emails",
-                HttpMethod.GET,
-                entity,
-                new ParameterizedTypeReference<List<Map<String, Object>>>() {}
-            );
-            
-            if (response.getBody() == null || response.getBody().isEmpty()) {
-                String login = oAuth2User.getAttribute("login");
-                throw new RuntimeException(
-                    "GitHub nie zwrócił żadnych adresów email. Login: " + login + ". " +
-                    "Upewnij się, że masz dodany i zweryfikowany email w ustawieniach GitHub."
-                );
-            }
-            
-            return response.getBody()
-                    .stream()
-                    .filter(emailData -> 
-                        Boolean.TRUE.equals(emailData.get("primary")) && 
-                        Boolean.TRUE.equals(emailData.get("verified"))
-                    )
-                    .map(emailData -> (String) emailData.get("email"))
-                    .findFirst()
-                    .orElseThrow(() -> {
-                        String login = oAuth2User.getAttribute("login");
-                        return new RuntimeException(
-                            "Nie znaleziono zweryfikowanego emaila w GitHub. " +
-                            "Upewnij się, że masz oznaczony primary i verified email w ustawieniach GitHub."
-                        );
-                    });
-            
+            String accessToken = getGitHubAccessToken(registrationId, principalName);
+            List<Map<String, Object>> emails = fetchEmailsFromGitHub(accessToken);
+            return extractPrimaryEmail(emails, oAuth2User);
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            if (e instanceof RuntimeException) {
-                throw e; // Przepuść nasze wyjątki
-            }
-            String login = oAuth2User.getAttribute("login");
-            throw new RuntimeException(
-                "Błąd podczas pobierania emaila z GitHub API. Login: " + login + ". " +
-                "Szczegóły: " + e.getMessage()
-            );
+            throw new RuntimeException("Failed to fetch email from GitHub API.\nDetails: " + e.getMessage());
         }
+    }
+
+    private String getGitHubAccessToken(String registrationId, String principalName) {
+        OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient( registrationId, principalName );
+        if (client == null) 
+            throw new RuntimeException("Unable to retrieve GitHub access token for user: " + principalName );        
+        return client.getAccessToken().getTokenValue();
+    }
+
+    private List<Map<String, Object>> fetchEmailsFromGitHub(String accessToken) {
+        /* Fetches all email addresses associated with the GitHub user account.
+         * GitHub users can have multiple emails; we retrieve the full list to identify the primary one. */
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        HttpEntity<?> entity = new HttpEntity<>(headers);
+        
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
+            GITHUB_EMAILS_API_URL,
+            HttpMethod.GET,
+            entity,
+            new ParameterizedTypeReference<List<Map<String, Object>>>() {}
+        );
+        
+        List<Map<String, Object>> emails = response.getBody();
+        
+        if (emails == null || emails.isEmpty()) 
+            throw new RuntimeException( "GitHub did not return any email addresses." );
+        return emails;
+    }
+
+    private String extractPrimaryEmail(List<Map<String, Object>> emails, OAuth2User oAuth2User) {
+        return emails.stream()
+                .filter(this::isPrimary)
+                .map(emailData -> (String) emailData.get("email"))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("No primary email found in GitHub account. " ));
+    }
+
+    private boolean isPrimary(Map<String, Object> emailData) {
+        return Boolean.TRUE.equals(emailData.get("primary"));
     }
 }
 
