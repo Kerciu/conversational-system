@@ -55,17 +55,22 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests((request) -> request
                     .requestMatchers(
                         "/api/auth/register", 
-                        "/api/auth/login"
+                        "/api/auth/login",
+                        "/api/auth/oauth/success",
+                        "/api/auth/oauth2/success", // <-- POPRAWIONO
+                        "/oauth2/**",               // <-- Dodano dla pewności
+                        "/login/**"                 // <-- Dodano dla pewności
                         )
                         .permitAll()
                     .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())
                 .addFilterBefore(this.jwtFilter, BasicAuthenticationFilter.class)
+                .oauth2Login(oauth2 -> oauth2.defaultSuccessUrl("/api/auth/oauth2/success", true))
                 .build();
     }
 

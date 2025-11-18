@@ -3,9 +3,11 @@ package com.conversational.system.application.controllers;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.security.core.Authentication;
 
 import com.conversational.system.application.authentication.AuthenticationService;
 import com.conversational.system.application.controllers.requests.LoginRequest;
@@ -39,4 +41,15 @@ public class AuthenticationController {
         }
     }
 
+    @GetMapping("/oauth2/success")
+    public ResponseEntity<String> authenticateWithGoogle(Authentication authentication) {
+        System.out.println("/oauth2/success controller");
+        try{
+            String token = authenticationService.authenticateOAuth2User(authentication);
+            return ResponseEntity.status(HttpStatus.OK).body(token);
+        }
+        catch(Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Exception occured during Oauth2 authentication process.\n" +e.getMessage());
+        }
+    }
 }
