@@ -1,4 +1,5 @@
 name: Build
+
 on:
   push:
     branches:
@@ -9,15 +10,102 @@ on:
     branches:
       - "**"
   workflow_dispatch:
-    inputs:
-      is-force-build:
-        default: false
-        description: Force full build.
-        required: false
-        type: boolean
+
 jobs:
+  setup-env:
+    runs-on: ubuntu-latest
+    outputs:
+      env-file-content: ${{ steps.create-env.outputs.env-file }}
+    steps:
+      - name: Create .env content
+        id: create-env
+        run: |
+          echo "env-file<<EOF" >> $GITHUB_OUTPUT
+          cat <<EOF >> $GITHUB_OUTPUT
+          POSTGRES_USER=dummy_user
+          POSTGRES_PASSWORD=dummy_password
+          POSTGRES_DB=dummy_db
+          POSTGRES_LOCAL_PORT=5432
+          POSTGRES_DOCKER_PORT=5432
+          BACKEND_PORT=8080
+          DATABASE_HOST=dummy_host
+          DATABASE_PORT=5432
+          DATABASE_NAME=dummy_db
+          FRONTEND_PORT=3000
+          SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/test_db
+          SPRING_DATASOURCE_USERNAME=user
+          SPRING_DATASOURCE_PASSWORD=password
+          SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop
+          RABBITMQ_USER=dummy
+          RABBITMQ_PASS=dummy
+          RABBITMQ_IN_QUEUE_AGENT=test-queue-1
+          RABBITMQ_OUT_QUEUE_AGENT=test-queue-2
+          RABBITMQ_IN_QUEUE_SANDBOX=test-queue-3
+          RABBITMQ_OUT_QUEUE_SANDBOX=test-queue-4
+          RABBITMQ_HOST=localhost
+          SPRING_REDIS_HOST=localhost
+          AGENT_SERVICE_PORT=3721
+          SANDBOX_SERVICE_PORT=2137
+          DOCKER_SOCK_PATH=/var/run/docker.sock
+          EOF
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  agent-service-ci:
+    runs-on: ubuntu-latest
+    needs: setup-env
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install ruff pytest
+          pip install -r agent-service/requirements.txt
+
+      - name: Run Ruff Linter
+        run: |
+          ruff check ./agent-service
+          ruff format --check ./agent-service
+
+      - name: Run tests with pytest
+        run: pytest ./agent-service/__test__
+
+  sandbox-service-ci:
+    runs-on: ubuntu-latest
+    needs: setup-env
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install ruff pytest
+          pip install -r sandbox-service/requirements.txt
+
+      - name: Run Ruff Linter
+        run: |
+          ruff check ./sandbox-service
+          ruff format --check ./sandbox-service
+
+      - name: Run tests with pytest
+        run: pytest ./sandbox-service/__test__
+
   backend-ci:
     runs-on: ubuntu-latest
+    needs: setup-env
+
+    env:
+      ENV_FILE_CONTENT: ${{ needs.setup-env.outputs.env-file-content }}
 
     services:
       postgres:
@@ -35,8 +123,13 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Create .env file from output
+        run: echo "$ENV_FILE_CONTENT" > .env
+
+      - name: Load environment variables
+        run: cat .env >> $GITHUB_ENV
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -52,34 +145,38 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Build with Maven
-        run: mvn --batch-mode -f backend-service/pom.xml clean test
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/test_db
-          SPRING_DATASOURCE_USERNAME: user
-          SPRING_DATASOURCE_PASSWORD: password
-          SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
-    
+      - name: Build, Test and Lint with Maven
+        run: mvn --batch-mode -f backend-service/pom.xml clean verify
+
   frontend-ci:
     runs-on: ubuntu-latest
-    
+    needs: setup-env
+
+    env:
+      ENV_FILE_CONTENT: ${{ needs.setup-env.outputs.env-file-content }}
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Create .env file from output
+        run: echo "$ENV_FILE_CONTENT" > .env
+
+      - name: Load environment variables
+        run: cat .env >> $GITHUB_ENV
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: NPM dependency cache
+      - name: Cache npm
         uses: actions/cache@v4
         with:
           path: client/node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('client/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
-            
+
       - name: Install dependencies
         run: npm ci
         working-directory: ./client
@@ -94,25 +191,19 @@ jobs:
 
   build-docker:
     runs-on: ubuntu-latest
-    needs: [backend-ci, frontend-ci]
-    
+    needs: [backend-ci, agent-service-ci, sandbox-service-ci, frontend-ci, setup-env]
+
+    env:
+      ENV_FILE_CONTENT: ${{ needs.setup-env.outputs.env-file-content }}
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Create .env file from output
+        run: echo "$ENV_FILE_CONTENT" > .env
 
       - name: Configure Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Create images
-        run: docker compose build
-        env:
-          POSTGRES_USER: dummy_user
-          POSTGRES_PASSWORD: dummy_password
-          POSTGRES_DB: dummy_db
-          POSTGRES_LOCAL_PORT: 5432
-          POSTGRES_DOCKER_PORT: 5432
-          BACKEND_PORT: 8080
-          DATABASE_HOST: dummy_host
-          DATABASE_PORT: 5432
-          DATABASE_NAME: dummy_db
-          FRONTEND_PORT: 3000
+      - name: Build Docker images
+        run: docker compose --env-file .env build

@@ -40,3 +40,16 @@ next-env.d.ts
 /wrapper
 
 .vscode/
+# python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+env/
+*.env
+venv/
+ENV/
+.venv/
+env.bak/
+.pytest_cache/
+.ruff_cache/
