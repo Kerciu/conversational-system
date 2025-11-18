@@ -28,6 +28,7 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final OAuth2Service oauth2Service;
 
 
 
@@ -57,12 +58,17 @@ public class AuthenticationService {
     
     public String authenticateOAuth2User(Authentication authentication){
         System.out.println("OAuth2 Authentication");
-        if (!(authentication instanceof OAuth2AuthenticationToken)) 
+        if (!(authentication instanceof OAuth2AuthenticationToken oAuth2Token)) 
                 throw new RuntimeException("Expected OAuth2AuthenticationToken but received: " + authentication.getClass().getSimpleName());
 
             try {
                 OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-                User user = findOrCreateOauthUser(oAuth2User.getAttribute("email"), oAuth2User.getName());
+                String provider = oAuth2Token.getAuthorizedClientRegistrationId(); // "google" lub "github"
+
+                String email = oauth2Service.extractEmail(oAuth2User, provider, oAuth2Token.getName());
+                String username = oauth2Service.extractUsername(oAuth2User, provider);     
+                
+                User user = findOrCreateOauthUser(email, username);
                 return jwtService.generateJWToken(user.getUsername());
             }
             catch (OAuth2AuthenticationException e) {
@@ -73,7 +79,7 @@ public class AuthenticationService {
             }
     }
 
-        private User findOrCreateOauthUser(String email, String username) {
+    private User findOrCreateOauthUser(String email, String username) {
         return userRepository.findByEmail(email)
                 .orElseGet(() -> {
                     verifyEmail(email);
@@ -82,7 +88,6 @@ public class AuthenticationService {
                     return userRepository.save(newUser);
                 });
     }
-
     
     private void verifyEmail(String email) {
         String emailRegex = "^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$";
