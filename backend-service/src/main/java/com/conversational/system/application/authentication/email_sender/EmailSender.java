@@ -16,8 +16,6 @@ import lombok.RequiredArgsConstructor;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +27,6 @@ public class EmailSender {
     private String frontendBaseUrl;
 
     private final JavaMailSender mailSender;
-    private static final Logger log = LoggerFactory.getLogger(EmailSender.class);
 
     public void sendVerificationEmail(String username, String email, String code) {
         final String VERIFICATION_SUBJECT = "Account verification";
@@ -57,11 +54,6 @@ public class EmailSender {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            System.out.println("Sending email to: " + to);
-            System.out.println("From: " + FROM_EMAIL);
-            System.out.println("Subject: " + subject);
-            System.out.println("Body: " + body);
-            
             helper.setTo(to);
             helper.setFrom(FROM_EMAIL);
             helper.setSubject(subject);
@@ -69,7 +61,6 @@ public class EmailSender {
             mailSender.send(message);
         }
         catch (MessagingException e) {
-            log.error("Failed to send email to {}: {}", to, e.getMessage());
             throw new RuntimeException("Failed to send email.\nReason: " + e.getMessage(), e);
         }
         catch (Exception e) {
