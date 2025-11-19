@@ -17,8 +17,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.conversational.system.application.authentication.email_sender.EmailSender;
 import com.conversational.system.application.entities.user.User;
 import com.conversational.system.application.entities.user.UserRepository;
 
@@ -32,6 +34,9 @@ public class RegistrationTests {
 
     @InjectMocks
     private AuthenticationService authenticationService;
+    
+    @MockBean 
+    private EmailSender emailSender;
     
     @Test
     void testRegisteringAndSavingWithValidData() {

@@ -11,10 +11,14 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import com.conversational.system.application.authentication.AuthenticationService;
+import com.conversational.system.application.authentication.email_sender.EmailSender;
+
 import jakarta.activation.DataSource;
     
 @SpringBootTest
 class ApplicationTests {
+	@MockBean 
+	private EmailSender emailSender;
 	@MockBean
     private DataSource dataSource;
 
