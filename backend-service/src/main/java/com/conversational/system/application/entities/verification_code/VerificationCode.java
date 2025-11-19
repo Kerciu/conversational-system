@@ -1,5 +1,8 @@
 package com.conversational.system.application.entities.verification_code;
 
+import java.security.SecureRandom;
+import java.util.Base64;
+
 import com.conversational.system.application.entities.user.User;
 
 import jakarta.persistence.Column;
@@ -21,6 +24,9 @@ import lombok.Setter;
 @Table(name = "verification_code")
 @NoArgsConstructor
 public class VerificationCode {
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final int TOKEN_LENGTH_BYTES = 32; // ~256 bitów entropii
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -39,10 +45,12 @@ public class VerificationCode {
     }
 
     private String generateVerificationCode() {
-        // TODO: Implement a more secure code generation mechanism
-        // Simple random 6-digit code generation
-        int code = (int)(Math.random() * 900000) + 100000;
-        return String.valueOf(code);
+        byte[] randomBytes = new byte[TOKEN_LENGTH_BYTES];
+        SECURE_RANDOM.nextBytes(randomBytes);
+        return  Base64
+                    .getUrlEncoder()
+                    .withoutPadding()
+                    .encodeToString(randomBytes);
     }
 
 
