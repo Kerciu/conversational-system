@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -63,14 +64,15 @@ public class RegistrationTests {
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
         when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
         when(passwordEncoder.encode(password)).thenReturn(encodedPassword);
-        doNothing().when(emailSender).sendVerificationEmail(any(User.class));
+        doNothing().when(emailSender).sendVerificationEmail(anyString(), anyString(), anyString());
 
         authenticationService.registerUser(username, email, password);
 
         // CHECK IF USER WAS SAVED WITH CORRECT DATA
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository, times(2)).save(userCaptor.capture());
-        verify(emailSender).sendVerificationEmail(any(User.class));
+        verify(emailSender).sendVerificationEmail(eq(username), eq(email), anyString());
+        
 
         User savedUser = userCaptor.getValue();
         assertEquals(username, savedUser.getUsername());

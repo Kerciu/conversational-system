@@ -15,7 +15,7 @@ import com.conversational.system.application.authentication.email_sender.EmailSe
 
 import jakarta.activation.DataSource;
     
-@SpringBootTest
+
 class ApplicationTests {
 	@Mock
     private EmailSender emailSender;
