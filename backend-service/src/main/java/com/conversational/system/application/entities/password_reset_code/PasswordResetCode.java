@@ -1,6 +1,7 @@
 package com.conversational.system.application.entities.password_reset_code;
 
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.Base64;
 
 import com.conversational.system.application.entities.user.User;
@@ -26,6 +27,7 @@ import lombok.Setter;
 public class PasswordResetCode {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final int TOKEN_LENGTH_BYTES = 32; 
+    private static final int EXPIRATION_HOURS = 24;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,6 +41,9 @@ public class PasswordResetCode {
     @Column(name = "code", nullable = false)
     private String code;
 
+    @Column(name="expiration_time", nullable = false)
+    private LocalDateTime expirationTime;
+
     private String generateVerificationCode() {
         byte[] randomBytes = new byte[TOKEN_LENGTH_BYTES];
         SECURE_RANDOM.nextBytes(randomBytes);
@@ -50,6 +55,11 @@ public class PasswordResetCode {
     public PasswordResetCode(User user) {
         this.user = user;
         this.code = generateVerificationCode();
+        this.expirationTime = LocalDateTime.now().plusHours(EXPIRATION_HOURS);
+    }
+
+    public boolean isExpired() {
+        return LocalDateTime.now().isAfter(this.expirationTime);
     }
     
 }

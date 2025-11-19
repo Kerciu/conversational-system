@@ -120,12 +120,11 @@ public class AuthenticationService {
     }
 
     private void sendPasswordResetEmail(User user) {
-        PasswordResetCode resetCode = createPasswordResetCode(user);
-        System.out.println("Password reset code: " + resetCode.getCode());
+        PasswordResetCode resetCode = newPasswordResetCode(user);
         emailSender.sendPasswordResetEmail(user.getUsername(), user.getEmail(), resetCode.getCode());
     }
 
-    private PasswordResetCode createPasswordResetCode(User user) {
+    private PasswordResetCode newPasswordResetCode(User user) {
         PasswordResetCode resetCode = new PasswordResetCode(user);
         user.setPasswordResetCode(resetCode);
         userRepository.save(user);
@@ -134,6 +133,10 @@ public class AuthenticationService {
 
     public void resetPassword(String code, String newPassword) {
         User user = userRepository.findByPasswordResetCode_Code(code).orElseThrow(() -> new RuntimeException("Invalid password reset code: " + code));
+        if (user.getPasswordResetCode().isExpired()) {
+            newPasswordResetCode(user);
+            throw new RuntimeException("Password reset code has expired for user: " + user.getUsername() + ".\nA new password reset email has been sent.");
+        }
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setPasswordResetCode(null);
         userRepository.save(user);
@@ -141,8 +144,6 @@ public class AuthenticationService {
 
     public void verifyAccount(String verificationCode) {
         User user = userRepository.findByVerificationCode_Code(verificationCode).orElseThrow(() -> new RuntimeException("Invalid verification code: " + verificationCode));
-        System.out.println("Verifying account for user: " + user.getUsername());
-        System.out.println("Code: " + user.getVerificationCode().getCode());
         user.setVerified(true);
         user.setVerificationCode(null);
         userRepository.save(user);
