@@ -53,6 +53,17 @@ public class AuthenticationController {
         }
     }
 
+    @PostMapping("/veirfy-account")
+    public ResponseEntity<String> verifyAccount(@RequestBody String verificationCode) {
+        try {
+            authenticationService.verifyAccount(verificationCode);
+            return ResponseEntity.status(HttpStatus.OK).body("Account has been verified successfully");
+        }
+        catch(Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Exception occured during email verification process.\n" +e.getMessage());
+        }
+    }
+
     @PostMapping("/reset-password-request")
     public ResponseEntity<String> resetPasswordRequest(@RequestBody String email) {
         try{
@@ -70,7 +81,7 @@ public class AuthenticationController {
             return ResponseEntity.status(HttpStatus.OK).body("Password has been reset successfully");
         }
         catch(Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Exception occured during password reset process.\n" +e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Exception occured during password reset process.\n" + e.getMessage());
         }
     }
 }

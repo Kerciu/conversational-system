@@ -139,4 +139,13 @@ public class AuthenticationService {
         userRepository.save(user);
     }
 
+    public void verifyAccount(String verificationCode) {
+        User user = userRepository.findByVerificationCode_Code(verificationCode).orElseThrow(() -> new RuntimeException("Invalid verification code: " + verificationCode));
+        System.out.println("Verifying account for user: " + user.getUsername());
+        System.out.println("Code: " + user.getVerificationCode().getCode());
+        user.setVerified(true);
+        user.setVerificationCode(null);
+        userRepository.save(user);
+    }
+
 }
