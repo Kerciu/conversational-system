@@ -24,21 +24,14 @@ import org.slf4j.LoggerFactory;
 public class EmailSender {
     @Value("${spring.mail.username}")
     private String FROM_EMAIL;
-    private final JavaMailSender mailSender;
-    @Value("${app.frontend.base-url}")                      // Np. https://twoj-frontend.pl
+
+    @Value("${app.frontend.base-url}")                    
     private String frontendBaseUrl;
+
+    private final JavaMailSender mailSender;
     private static final Logger log = LoggerFactory.getLogger(EmailSender.class);
 
     public void sendVerificationEmail(String username, String email, String code) {
-        // // TODO:
-        // //  import template from file
-        // //  personalize template with verification link containing the verification code
-        // //  personalize template with username
-
-        // final String VERIFICATION_SUBJECT = "Account verification";
-        // final String VERIFICATION_BODY_TEMPLATE = "VERIFICATION LINK HERE";
-        // sendEmail(email, VERIFICATION_SUBJECT, VERIFICATION_BODY_TEMPLATE);
-
         final String VERIFICATION_SUBJECT = "Account verification";
         String verificationUrl = frontendBaseUrl + "/verify-email?token=" + code;
         String template = loadTemplate("templates/email/verification_email.html");
@@ -49,8 +42,15 @@ public class EmailSender {
     }
 
     
-    public void sendPasswordResetEmail() {
-        // TODO: password reset email
+    public void sendPasswordResetEmail(String username, String email, String code) {
+        final String PASSWORD_RESET_SUBJECT = "Password reset request";
+        String verificationUrl = frontendBaseUrl + "/reset-password?token=" + code;
+        String template = loadTemplate("templates/email/password_reset_email.html");
+        String body = template
+                            .replace("{{username}}", username)
+                            .replace("{{verificationUrl}}", verificationUrl);
+
+        sendEmail(email, PASSWORD_RESET_SUBJECT, body);
     }
 
     private void sendEmail(String to, String subject, String body) {
