@@ -19,7 +19,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.conversational.system.application.authentication.AuthenticationService;
 import com.conversational.system.application.entities.user.User;
 import com.conversational.system.application.entities.user.UserRepository;
 
