@@ -18,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.conversational.system.application.authentication.email_sender.EmailSender;
@@ -35,8 +36,9 @@ public class RegistrationTests {
     @InjectMocks
     private AuthenticationService authenticationService;
 	
-    @Mock
-    private EmailSender emailSender;
+	@MockBean
+    private JavaMailSender javaMailSender;
+
 
     @Test
     void testRegisteringAndSavingWithValidData() {

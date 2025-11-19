@@ -47,10 +47,6 @@ public class SecurityConfig {
     }
 
     @Bean
-    public EmailSender emailSender(JavaMailSender mailSender) {
-        return new EmailSender(mailSender);
-    }
-    @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(allowedOrigins);

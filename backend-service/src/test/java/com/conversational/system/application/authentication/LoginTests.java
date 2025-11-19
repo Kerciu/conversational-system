@@ -20,7 +20,6 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 
-import com.conversational.system.application.authentication.email_sender.EmailSender;
 import com.conversational.system.application.authentication.json_web_token.JwtService;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,9 +36,6 @@ public class LoginTests {
     @InjectMocks
     private AuthenticationService authenticationService;
 
-    @Mock
-    private EmailSender emailSender;
-    
     @Test
     void shouldThrowException_WhenAccountIsDisabled() {
         // MOCK AUTHENTICATION MANAGER THROWING DISABLED EXCEPTION
