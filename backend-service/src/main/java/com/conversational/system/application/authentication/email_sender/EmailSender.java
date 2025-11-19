@@ -44,11 +44,11 @@ public class EmailSender {
     
     public void sendPasswordResetEmail(String username, String email, String code) {
         final String PASSWORD_RESET_SUBJECT = "Password reset request";
-        String verificationUrl = frontendBaseUrl + "/reset-password?token=" + code;
+        String resetUrl = frontendBaseUrl + "/reset-password?token=" + code;
         String template = loadTemplate("templates/email/password_reset_email.html");
         String body = template
                             .replace("{{username}}", username)
-                            .replace("{{verificationUrl}}", verificationUrl);
+                            .replace("{{resetUrl}}", resetUrl);
 
         sendEmail(email, PASSWORD_RESET_SUBJECT, body);
     }
