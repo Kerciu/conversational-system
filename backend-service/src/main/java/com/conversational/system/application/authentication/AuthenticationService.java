@@ -120,18 +120,22 @@ public class AuthenticationService {
     }
 
     private void sendPasswordResetEmail(User user) {
-        PasswordResetCode resetCode = user.getPasswordResetCode();
-        if (resetCode == null) {
-            createPasswordResetCode(user);
-            resetCode = user.getPasswordResetCode();
-        }
+        PasswordResetCode resetCode = createPasswordResetCode(user);
         System.out.println("Password reset code: " + resetCode.getCode());
         emailSender.sendPasswordResetEmail(user.getUsername(), user.getEmail(), resetCode.getCode());
     }
 
-    private void createPasswordResetCode(User user) {
+    private PasswordResetCode createPasswordResetCode(User user) {
         PasswordResetCode resetCode = new PasswordResetCode(user);
         user.setPasswordResetCode(resetCode);
+        userRepository.save(user);
+        return resetCode;
+    }
+
+    public void resetPassword(String code, String newPassword) {
+        User user = userRepository.findByPasswordResetCode_Code(code).orElseThrow(() -> new RuntimeException("Invalid password reset code: " + code));
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setPasswordResetCode(null);
         userRepository.save(user);
     }
 
