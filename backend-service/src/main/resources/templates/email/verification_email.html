@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <title>Account verification</title>
+</head>
+<body style="
+    margin:0;
+    padding:0;
+    font-family:Arial,sans-serif;
+    background:#313647;
+    background-image:linear-gradient(135deg,#313647,#435663,#A3B087);
+">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+    <tr>
+        <td align="center" style="padding:32px 16px;">
+            <!-- karta -->
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+                   style="
+                       max-width:600px;
+                       background:#313647;
+                       border-radius:18px;
+                       box-shadow:0 18px 45px rgba(0,0,0,0.45);
+                       overflow:hidden;
+                       color:#FFF8D4;
+                   ">
+                <!-- nagłówek z delikatnym overlayem -->
+                <tr>
+                    <td style="
+                        padding:24px 32px 18px;
+                        background:#313647;
+                        background-image:
+                            radial-gradient(circle at top left, #43566366, transparent 55%),
+                            radial-gradient(circle at bottom right, #A3B08766, transparent 55%);
+                    ">
+                        <h1 style="margin:0; font-size:22px; color:#FFF8D4;">
+                            Verify your account
+                        </h1>
+                        <p style="margin:8px 0 0; font-size:14px; color:#FFF8D4;">
+                            Hello {{username}},
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- treść -->
+                <tr>
+                    <td style="padding:24px 32px 8px;">
+                        <p style="margin:0 0 12px; font-size:14px; line-height:1.6; color:#FFF8D4;">
+                            Thank you for registering in our application.
+                        </p>
+                        <p style="margin:0 0 20px; font-size:14px; line-height:1.6; color:#FFF8D4;">
+                            Please confirm your account by clicking the button below:
+                        </p>
+
+                        <!-- button -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" align="center" style="margin:0 auto 24px;">
+                            <tr>
+                                <td bgcolor="#A3B087" style="border-radius:999px;">
+                                    <a href="{{verificationUrl}}"
+                                       style="
+                                           display:inline-block;
+                                           padding:12px 28px;
+                                           font-size:14px;
+                                           color:#313647;
+                                           text-decoration:none;
+                                           font-weight:bold;
+                                           letter-spacing:0.03em;
+                                       ">
+                                        Verify account
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <p style="margin:0 0 8px; font-size:12px; color:#FFF8D4; opacity:0.8; line-height:1.6;">
+                            If the button does not work, copy and paste this link into your browser:
+                        </p>
+                        <p style="margin:0; font-size:12px; color:#FFF8D4; word-break:break-all;">
+                            <a href="{{verificationUrl}}" style="color:#A3B087; text-decoration:none;">
+                                {{verificationUrl}}
+                            </a>
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- stopka -->
+                <tr>
+                    <td style="padding:20px 32px 24px;">
+                        <p style="margin:0; font-size:11px; color:#FFF8D4; opacity:0.7; line-height:1.6;">
+                            If you did not create an account, you can safely ignore this email.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

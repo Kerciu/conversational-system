@@ -105,15 +105,10 @@ public class AuthenticationService {
     }
     
     private void sendVerificationEmail(User user) {
-        // TODO: 
-        //  create a VerificationCode entity associated with the user
-        //  use EmailSender to send an email with the verification code link
-
         VerificationCode verificationCode = new VerificationCode(user);
         user.setVerificationCode(verificationCode);
         userRepository.save(user);
-
-        emailSender.sendVerificationEmail(user);
+        emailSender.sendVerificationEmail(user.getUsername(), user.getEmail(), verificationCode.getCode());
     }
 
 }
