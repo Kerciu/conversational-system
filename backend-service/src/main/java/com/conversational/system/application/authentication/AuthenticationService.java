@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import com.conversational.system.application.authentication.email_sender.EmailSender;
 import com.conversational.system.application.authentication.json_web_token.JwtService;
+import com.conversational.system.application.entities.password_reset_code.PasswordResetCode;
 import com.conversational.system.application.entities.user.User;
 import com.conversational.system.application.entities.user.UserRepository;
 import com.conversational.system.application.entities.verification_code.VerificationCode;
@@ -41,6 +42,13 @@ public class AuthenticationService {
         User newUser = new User(email, username, passwordEncoder.encode(password));
         userRepository.save(newUser);
         sendVerificationEmail(newUser);
+    }
+
+    public void  resetPasswordRequest(String email) {
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isEmpty()) throw new RuntimeException("No user found with email: " + email);
+        User user = userOptional.get();
+        sendPasswordResetEmail(user);
     }
 
     public String loginUser(String username, String password) {
@@ -109,6 +117,22 @@ public class AuthenticationService {
         user.setVerificationCode(verificationCode);
         userRepository.save(user);
         emailSender.sendVerificationEmail(user.getUsername(), user.getEmail(), verificationCode.getCode());
+    }
+
+    private void sendPasswordResetEmail(User user) {
+        PasswordResetCode resetCode = user.getPasswordResetCode();
+        if (resetCode == null) {
+            createPasswordResetCode(user);
+            resetCode = user.getPasswordResetCode();
+        }
+        System.out.println("Password reset code: " + resetCode.getCode());
+        emailSender.sendPasswordResetEmail(user.getUsername(), user.getEmail(), resetCode.getCode());
+    }
+
+    private void createPasswordResetCode(User user) {
+        PasswordResetCode resetCode = new PasswordResetCode(user);
+        user.setPasswordResetCode(resetCode);
+        userRepository.save(user);
     }
 
 }

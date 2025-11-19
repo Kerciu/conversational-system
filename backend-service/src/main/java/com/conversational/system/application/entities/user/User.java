@@ -2,8 +2,10 @@ package com.conversational.system.application.entities.user;
 
 import java.time.LocalDateTime;
 
+import com.conversational.system.application.entities.password_reset_code.PasswordResetCode;
 import com.conversational.system.application.entities.verification_code.VerificationCode;
 
+import io.jsonwebtoken.security.Password;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -46,6 +48,9 @@ public class User {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private VerificationCode verificationCode;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private PasswordResetCode passwordResetCode;
+
     public User(String email, String username, String passwordHash) {
         this.email = email;
         this.username = username;
@@ -54,7 +59,7 @@ public class User {
         this.isVerified = true; // will be initialized to false when email verification is implemented
     }
 
-        public void setVerificationCode(VerificationCode verificationCode) {
+    public void setVerificationCode(VerificationCode verificationCode) {
         if (verificationCode == null) {
             if (this.verificationCode != null) {
                 this.verificationCode.setUser(null);
@@ -63,5 +68,16 @@ public class User {
             verificationCode.setUser(this);
         }
         this.verificationCode = verificationCode;
+    }
+    
+    public void setPasswordResetCode(PasswordResetCode passwordResetCode) {
+        if (passwordResetCode == null) {
+            if (this.passwordResetCode != null) {
+                this.passwordResetCode.setUser(null);
+            }
+        } else {
+            passwordResetCode.setUser(this);
+        }
+        this.passwordResetCode = passwordResetCode;
     }
 }

@@ -51,4 +51,14 @@ public class AuthenticationController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Exception occured during Oauth2 authentication process.\n" +e.getMessage());
         }
     }
+
+    @PostMapping("/reset-password-request")
+    public ResponseEntity<String> resetPasswordRequest(@RequestBody String email) {
+        try{
+            authenticationService.resetPasswordRequest(email);
+            return ResponseEntity.status(HttpStatus.OK).body("Password reset email sent successfully");
+        } catch(Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Exception occured during password reset process.\n" +e.getMessage());
+        }
+    }
 }
