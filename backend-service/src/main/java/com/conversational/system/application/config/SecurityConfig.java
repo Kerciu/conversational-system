@@ -4,6 +4,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -19,6 +20,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.conversational.system.application.authentication.email_sender.EmailSender;
 import com.conversational.system.application.authentication.json_web_token.JwtFilter;
 
 import lombok.RequiredArgsConstructor;
@@ -42,6 +44,11 @@ public class SecurityConfig {
     @Bean 
     public RestTemplate restTemplate() {
         return new RestTemplate();
+    }
+
+    @Bean
+    public EmailSender emailSender(JavaMailSender mailSender) {
+        return new EmailSender(mailSender);
     }
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
