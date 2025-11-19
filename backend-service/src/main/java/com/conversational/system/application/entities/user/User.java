@@ -1,11 +1,17 @@
 package com.conversational.system.application.entities.user;
 
 import java.time.LocalDateTime;
+
+import com.conversational.system.application.entities.verification_code.VerificationCode;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -37,11 +43,25 @@ public class User {
     @Column(name = "is_verified", nullable = false)
     private boolean isVerified;
     
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private VerificationCode verificationCode;
+
     public User(String email, String username, String passwordHash) {
         this.email = email;
         this.username = username;
         this.passwordHash = passwordHash;
         this.creationDate = LocalDateTime.now();
         this.isVerified = true; // will be initialized to false when email verification is implemented
+    }
+
+        public void setVerificationCode(VerificationCode verificationCode) {
+        if (verificationCode == null) {
+            if (this.verificationCode != null) {
+                this.verificationCode.setUser(null);
+            }
+        } else {
+            verificationCode.setUser(this);
+        }
+        this.verificationCode = verificationCode;
     }
 }
