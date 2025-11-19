@@ -69,8 +69,9 @@ public class RegistrationTests {
 
         // CHECK IF USER WAS SAVED WITH CORRECT DATA
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository, times(1)).save(userCaptor.capture());
-        
+        verify(userRepository, times(2)).save(userCaptor.capture());
+        verify(emailSender).sendVerificationEmail(any(User.class));
+
         User savedUser = userCaptor.getValue();
         assertEquals(username, savedUser.getUsername());
         assertEquals(email, savedUser.getEmail());
@@ -81,7 +82,6 @@ public class RegistrationTests {
     void shouldThrowException_WhenEmailAlreadyExists() {
         String email = "existing@example.com";
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(new User()));
-        doNothing().when(emailSender).sendVerificationEmail(any(User.class));
 
         // MAKE SURE EXCEPTION IS THROWN & USER WAS NOT SAVED 
         assertThrows(RuntimeException.class, () -> {
@@ -95,7 +95,6 @@ public class RegistrationTests {
         String username = "existinguser";
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(new User()));
-        doNothing().when(emailSender).sendVerificationEmail(any(User.class));
 
         // MAKE SURE EXCEPTION IS THROWN & USER WAS NOT SAVED 
         assertThrows(RuntimeException.class, () -> { // lub stwórz UsernameAlreadyExistsException
@@ -107,7 +106,6 @@ public class RegistrationTests {
     @Test
     void shouldThrowException_WhenEmailIsInvalid() {
         String invalidEmail = "not-an-email";
-        doNothing().when(emailSender).sendVerificationEmail(any(User.class));
 
         // MAKE SURE EXCEPTION IS THROWN & USER WAS NOT SAVED 
         assertThrows(RuntimeException.class, () -> {
