@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -17,11 +18,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.conversational.system.application.authentication.email_sender.EmailSender;
+import com.conversational.system.application.authentication.json_web_token.JwtService;
 import com.conversational.system.application.entities.user.User;
 import com.conversational.system.application.entities.user.UserRepository;
 
@@ -33,11 +34,22 @@ public class RegistrationTests {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    // Additional constructor dependencies of AuthenticationService:
+    @Mock
+    private AuthenticationManager authenticationManager;
+
+    @Mock
+    private JwtService jwtService;
+
+    @Mock
+    private OAuth2Service oauth2Service;
+
+    // Ensure EmailSender is mocked so it's injected and not null
+    @Mock
+    private EmailSender emailSender;
+
     @InjectMocks
     private AuthenticationService authenticationService;
-	
-	@MockBean
-    private JavaMailSender javaMailSender;
 
 
     @Test
@@ -51,6 +63,7 @@ public class RegistrationTests {
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
         when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
         when(passwordEncoder.encode(password)).thenReturn(encodedPassword);
+        doNothing().when(emailSender).sendVerificationEmail(any(User.class));
 
         authenticationService.registerUser(username, email, password);
 
@@ -68,6 +81,7 @@ public class RegistrationTests {
     void shouldThrowException_WhenEmailAlreadyExists() {
         String email = "existing@example.com";
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(new User()));
+        doNothing().when(emailSender).sendVerificationEmail(any(User.class));
 
         // MAKE SURE EXCEPTION IS THROWN & USER WAS NOT SAVED 
         assertThrows(RuntimeException.class, () -> {
@@ -81,6 +95,7 @@ public class RegistrationTests {
         String username = "existinguser";
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(new User()));
+        doNothing().when(emailSender).sendVerificationEmail(any(User.class));
 
         // MAKE SURE EXCEPTION IS THROWN & USER WAS NOT SAVED 
         assertThrows(RuntimeException.class, () -> { // lub stwórz UsernameAlreadyExistsException
@@ -92,6 +107,7 @@ public class RegistrationTests {
     @Test
     void shouldThrowException_WhenEmailIsInvalid() {
         String invalidEmail = "not-an-email";
+        doNothing().when(emailSender).sendVerificationEmail(any(User.class));
 
         // MAKE SURE EXCEPTION IS THROWN & USER WAS NOT SAVED 
         assertThrows(RuntimeException.class, () -> {
