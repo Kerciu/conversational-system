@@ -12,9 +12,11 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
+import com.conversational.system.application.authentication.email_sender.EmailSender;
 import com.conversational.system.application.authentication.json_web_token.JwtService;
 import com.conversational.system.application.entities.user.User;
 import com.conversational.system.application.entities.user.UserRepository;
+import com.conversational.system.application.entities.verification_code.VerificationCode;
 import com.google.api.client.util.Value;
 
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,7 @@ public class AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final OAuth2Service oauth2Service;
+    private final EmailSender emailSender;
 
 
 
@@ -102,7 +105,15 @@ public class AuthenticationService {
     }
     
     private void sendVerificationEmail(User user) {
-        // to be implemented 
+        // TODO: 
+        //  create a VerificationCode entity associated with the user
+        //  use EmailSender to send an email with the verification code link
+
+        VerificationCode verificationCode = new VerificationCode(user);
+        user.setVerificationCode(verificationCode);
+        userRepository.save(user);
+
+        emailSender.sendVerificationEmail(user);
     }
 
 }
