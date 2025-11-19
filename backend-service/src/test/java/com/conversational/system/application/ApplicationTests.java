@@ -1,7 +1,7 @@
 package com.conversational.system.application;
 
 import org.junit.jupiter.api.Test;
-
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,8 +17,8 @@ import jakarta.activation.DataSource;
     
 @SpringBootTest
 class ApplicationTests {
-	@MockBean 
-	private EmailSender emailSender;
+	@Mock
+    private EmailSender emailSender;
 	@MockBean
     private DataSource dataSource;
 

@@ -34,10 +34,10 @@ public class RegistrationTests {
 
     @InjectMocks
     private AuthenticationService authenticationService;
-    
-    @MockBean 
+	
+    @Mock
     private EmailSender emailSender;
-    
+
     @Test
     void testRegisteringAndSavingWithValidData() {
         // CREATE AND SAVE USER

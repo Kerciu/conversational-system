@@ -36,8 +36,10 @@ public class LoginTests {
 
     @InjectMocks
     private AuthenticationService authenticationService;
-    @MockBean 
+
+    @Mock
     private EmailSender emailSender;
+    
     @Test
     void shouldThrowException_WhenAccountIsDisabled() {
         // MOCK AUTHENTICATION MANAGER THROWING DISABLED EXCEPTION
