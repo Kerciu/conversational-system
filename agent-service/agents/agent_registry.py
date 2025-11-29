@@ -1,13 +1,17 @@
-from agent import Agent, ModelerAgent
+from agents.agent import Agent
+from agents.modeler_agent import ModelerAgent
+from agents.coder_agent import CoderAgent
 import enum
 
 
 class AgentType(enum.Enum):
     MODELER_AGENT = "MODELER_AGENT"
+    CODER_AGENT = "CODER_AGENT"
 
 
 AGENT_REGISTRY: dict[AgentType, type[Agent]] = {
     AgentType.MODELER_AGENT: ModelerAgent,
+    AgentType.CODER_AGENT: CoderAgent,
 }
 
 
