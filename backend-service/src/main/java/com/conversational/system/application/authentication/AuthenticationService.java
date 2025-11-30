@@ -7,6 +7,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
 import com.conversational.system.application.authentication.json_web_token.JwtService;
@@ -25,6 +28,8 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final OAuth2Service oauth2Service;
+
 
 
     public void registerUser(String username, String email, String password) {
@@ -50,7 +55,38 @@ public class AuthenticationService {
             throw new RuntimeException("Authentication failed for user " + username + ".\n" + e.getMessage());
         }
     }
+    
+    public String authenticateOAuth2User(Authentication authentication){
+        if (!(authentication instanceof OAuth2AuthenticationToken oAuth2Token)) 
+                throw new RuntimeException("Expected OAuth2AuthenticationToken but received: " + authentication.getClass().getSimpleName());
 
+            try {
+                OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+                String provider = oAuth2Token.getAuthorizedClientRegistrationId(); // "google" or "github"
+
+                String email = oauth2Service.extractEmail(oAuth2User, provider, oAuth2Token.getName());
+                String username = oauth2Service.extractUsername(oAuth2User, provider);     
+                
+                User user = findOrCreateOauthUser(email, username);
+                return jwtService.generateJWToken(user.getUsername());
+            }
+            catch (OAuth2AuthenticationException e) {
+                throw e;
+            }
+            catch (Exception e) {
+                throw new RuntimeException("Exception occured during OAuth2 authentication process.\n" +e.getMessage());
+            }
+    }
+
+    private User findOrCreateOauthUser(String email, String username) {
+        return userRepository.findByEmail(email)
+                .orElseGet(() -> {
+                    verifyEmail(email);
+                    verifyUsernameEmailAreUnique(username, email);
+                    User newUser = new User(email, username, null);
+                    return userRepository.save(newUser);
+                });
+    }
     
     private void verifyEmail(String email) {
         String emailRegex = "^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$";
