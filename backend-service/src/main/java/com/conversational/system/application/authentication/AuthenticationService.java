@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import com.conversational.system.application.authentication.code_generation.CodeGenerator;
 import com.conversational.system.application.authentication.email_sender.EmailSender;
 import com.conversational.system.application.authentication.json_web_token.JwtService;
-import com.conversational.system.application.entities.password_reset_code.PasswordResetCode;
 import com.conversational.system.application.entities.user.User;
 import com.conversational.system.application.entities.user.UserRepository;
 
@@ -117,37 +116,27 @@ public class AuthenticationService {
     }
 
     private void sendPasswordResetEmail(User user) {
-        PasswordResetCode resetCode = newPasswordResetCode(user);
-        emailSender.sendPasswordResetEmail(user.getUsername(), user.getEmail(), resetCode.getCode());
-    }
-
-    private PasswordResetCode newPasswordResetCode(User user) {
-        PasswordResetCode resetCode = new PasswordResetCode(user);
-        user.setPasswordResetCode(resetCode);
-        userRepository.save(user);
-        return resetCode;
+        String resetCode = CodeGenerator.generate();
+        codeCacheService.savePasswordResetCode(resetCode, user.getId());
+        emailSender.sendPasswordResetEmail(user.getUsername(), user.getEmail(), resetCode);
     }
 
     public void resetPassword(String code, String newPassword) {
-        User user = userRepository.findByPasswordResetCode_Code(code).orElseThrow(() -> new RuntimeException("Invalid password reset code: " + code));
-        if (user.getPasswordResetCode().isExpired()) {
-            newPasswordResetCode(user);
-            throw new RuntimeException("Password reset code has expired for user: " + user.getUsername() + ".\nA new password reset email has been sent.");
-        }
+        Integer userId = codeCacheService.getUserIdByPasswordResetCode(code);
+        if (userId == null) throw new RuntimeException("Invalid password reset code: " + code);
+        
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         user.setPasswordHash(passwordEncoder.encode(newPassword));
-        user.setPasswordResetCode(null);
         userRepository.save(user);
+        
+        codeCacheService.deletePasswordResetCode(code);
     }
 
     public void verifyAccount(String verificationCode) {
         Integer userId = codeCacheService.getUserIdByVerificationCode(verificationCode);
-        if (userId == null) {
-            throw new RuntimeException("Invalid verification code: " + verificationCode);
-        }
+        if (userId == null) throw new RuntimeException("Invalid verification code: " + verificationCode);
         
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         user.setVerified(true);
         userRepository.save(user);
         
