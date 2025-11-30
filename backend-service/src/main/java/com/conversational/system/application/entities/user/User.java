@@ -51,7 +51,7 @@ public class User {
         this.username = username;
         this.passwordHash = passwordHash;
         this.creationDate = LocalDateTime.now();
-        this.isVerified = true; // will be initialized to false when email verification is implemented
+        this.isVerified = false; 
     }
     
     public void setPasswordResetCode(PasswordResetCode passwordResetCode) {
