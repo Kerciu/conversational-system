@@ -1,23 +1,22 @@
 package com.conversational.system.application.authentication;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.Optional;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,7 +34,6 @@ public class RegistrationTests {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    // Additional constructor dependencies of AuthenticationService:
     @Mock
     private AuthenticationManager authenticationManager;
 
@@ -45,13 +43,14 @@ public class RegistrationTests {
     @Mock
     private OAuth2Service oauth2Service;
 
-    // Ensure EmailSender is mocked so it's injected and not null
     @Mock
     private EmailSender emailSender;
 
     @InjectMocks
     private AuthenticationService authenticationService;
 
+    @Mock
+    private CodeCacheService codeCacheService;
 
     @Test
     void testRegisteringAndSavingWithValidData() {
@@ -64,15 +63,23 @@ public class RegistrationTests {
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
         when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
         when(passwordEncoder.encode(password)).thenReturn(encodedPassword);
+        
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            user.setId(1); 
+            return user;
+        });
+        
         doNothing().when(emailSender).sendVerificationEmail(anyString(), anyString(), anyString());
+        doNothing().when(codeCacheService).saveVerificationCode(anyString(), any(Integer.class));
 
         authenticationService.registerUser(username, email, password);
 
         // CHECK IF USER WAS SAVED WITH CORRECT DATA
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository, times(2)).save(userCaptor.capture());
+        verify(userRepository, times(1)).save(userCaptor.capture());
         verify(emailSender).sendVerificationEmail(eq(username), eq(email), anyString());
-        
+        verify(codeCacheService).saveVerificationCode(anyString(), eq(1));
 
         User savedUser = userCaptor.getValue();
         assertEquals(username, savedUser.getUsername());
