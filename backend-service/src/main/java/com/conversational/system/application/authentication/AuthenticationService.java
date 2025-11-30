@@ -18,16 +18,12 @@ import com.conversational.system.application.authentication.json_web_token.JwtSe
 import com.conversational.system.application.entities.password_reset_code.PasswordResetCode;
 import com.conversational.system.application.entities.user.User;
 import com.conversational.system.application.entities.user.UserRepository;
-import com.conversational.system.application.entities.verification_code.VerificationCode;
-import com.google.api.client.util.Value;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService { 
-    @Value("${BACKEND_GOOGLE_CLIENT_ID}") 
-    private String googleClientId;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
