@@ -3,9 +3,7 @@ package com.conversational.system.application.entities.user;
 import java.time.LocalDateTime;
 
 import com.conversational.system.application.entities.password_reset_code.PasswordResetCode;
-import com.conversational.system.application.entities.verification_code.VerificationCode;
 
-import io.jsonwebtoken.security.Password;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -44,9 +42,6 @@ public class User {
 
     @Column(name = "is_verified", nullable = false)
     private boolean isVerified;
-    
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private VerificationCode verificationCode;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private PasswordResetCode passwordResetCode;
@@ -57,17 +52,6 @@ public class User {
         this.passwordHash = passwordHash;
         this.creationDate = LocalDateTime.now();
         this.isVerified = true; // will be initialized to false when email verification is implemented
-    }
-
-    public void setVerificationCode(VerificationCode verificationCode) {
-        if (verificationCode == null) {
-            if (this.verificationCode != null) {
-                this.verificationCode.setUser(null);
-            }
-        } else {
-            verificationCode.setUser(this);
-        }
-        this.verificationCode = verificationCode;
     }
     
     public void setPasswordResetCode(PasswordResetCode passwordResetCode) {

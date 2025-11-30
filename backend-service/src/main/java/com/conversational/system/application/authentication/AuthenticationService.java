@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
+import com.conversational.system.application.authentication.code_generation.CodeGenerator;
 import com.conversational.system.application.authentication.email_sender.EmailSender;
 import com.conversational.system.application.authentication.json_web_token.JwtService;
 import com.conversational.system.application.entities.password_reset_code.PasswordResetCode;
@@ -33,6 +34,7 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final OAuth2Service oauth2Service;
     private final EmailSender emailSender;
+    private final CodeCacheService codeCacheService;
 
 
 
@@ -113,10 +115,9 @@ public class AuthenticationService {
     }
     
     private void sendVerificationEmail(User user) {
-        VerificationCode verificationCode = new VerificationCode(user);
-        user.setVerificationCode(verificationCode);
-        userRepository.save(user);
-        emailSender.sendVerificationEmail(user.getUsername(), user.getEmail(), verificationCode.getCode());
+        String verificationCode = CodeGenerator.generate();
+        codeCacheService.saveVerificationCode(verificationCode, user.getId());
+        emailSender.sendVerificationEmail(user.getUsername(), user.getEmail(), verificationCode);
     }
 
     private void sendPasswordResetEmail(User user) {
@@ -143,10 +144,18 @@ public class AuthenticationService {
     }
 
     public void verifyAccount(String verificationCode) {
-        User user = userRepository.findByVerificationCode_Code(verificationCode).orElseThrow(() -> new RuntimeException("Invalid verification code: " + verificationCode));
+        Integer userId = codeCacheService.getUserIdByVerificationCode(verificationCode);
+        if (userId == null) {
+            throw new RuntimeException("Invalid verification code: " + verificationCode);
+        }
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
         user.setVerified(true);
-        user.setVerificationCode(null);
         userRepository.save(user);
+        
+        codeCacheService.deleteVerificationCode(verificationCode);
     }
 
 }
