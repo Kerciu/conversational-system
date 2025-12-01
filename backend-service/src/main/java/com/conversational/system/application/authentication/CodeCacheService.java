@@ -10,21 +10,18 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class CodeCacheService {
+    @Value("${app.security.verification-code-ttl-minutes:15}")
+    private long verificationCodeTtl;
     
+    @Value("${app.security.password-reset-code-ttl-minutes:15}")
+    private long passwordResetCodeTtl;
     private static final String VERIFICATION_CODE_PREFIX = "verification:";
     private static final String PASSWORD_RESET_CODE_PREFIX = "password_reset:";
-    private static final long VERIFICATION_CODE_TTL = 15; // minutes
-    private static final long PASSWORD_RESET_CODE_TTL = 15; // minutes
-    
     private final RedisTemplate<String, Object> redisTemplate;
-    
-    public CodeCacheService(RedisTemplate<String, Object> redisTemplate) {
-        this.redisTemplate = redisTemplate;
-    }
     
     // VERIFICATION CODE METHODS
     public void saveVerificationCode(String verificationCode, Integer userId) {
-        saveCode(VERIFICATION_CODE_PREFIX, verificationCode, userId, VERIFICATION_CODE_TTL);
+        saveCode(VERIFICATION_CODE_PREFIX, verificationCode, userId, verificationCodeTtl);
     }
     
     public Integer getUserIdByVerificationCode(String verificationCode) {
@@ -39,9 +36,10 @@ public class CodeCacheService {
         return codeExists(VERIFICATION_CODE_PREFIX, verificationCode);
     }
     
+
     // PASSWORD RESET CODE METHODS
     public void savePasswordResetCode(String resetCode, Integer userId) {
-        saveCode(PASSWORD_RESET_CODE_PREFIX, resetCode, userId, PASSWORD_RESET_CODE_TTL);
+        saveCode(PASSWORD_RESET_CODE_PREFIX, resetCode, userId, passwordResetCodeTtl);
     }
     
     public Integer getUserIdByPasswordResetCode(String resetCode) {
@@ -56,8 +54,8 @@ public class CodeCacheService {
         return codeExists(PASSWORD_RESET_CODE_PREFIX, resetCode);
     }
     
-    
-    // PRIVATE HELPER METHODS (DRY)
+
+    // PRIVATE HELPER METHODS
     private void saveCode(String prefix, String code, Integer userId, long ttlMinutes) {
         String key = prefix + code;
         redisTemplate.opsForValue().set(key, userId, ttlMinutes, TimeUnit.MINUTES);
