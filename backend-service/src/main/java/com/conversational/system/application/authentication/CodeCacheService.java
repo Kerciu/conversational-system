@@ -5,7 +5,10 @@ import java.util.concurrent.TimeUnit;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class CodeCacheService {
     
     private static final String VERIFICATION_CODE_PREFIX = "verification:";
