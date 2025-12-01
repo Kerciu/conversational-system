@@ -2,19 +2,18 @@ package com.conversational.system.application.authentication.email_sender;
 
 
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 
 @Service
@@ -67,8 +66,7 @@ public class EmailSender {
             throw new RuntimeException("Failed to send email.\n" + e.getMessage());
         }
     }
-
-    // Prostą prywatną metodę do wczytania pliku
+    
     private String loadTemplate(String path) {
         try {
             ClassPathResource resource = new ClassPathResource(path);
