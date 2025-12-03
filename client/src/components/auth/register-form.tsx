@@ -83,11 +83,8 @@ export function RegisterForm() {
         // description: "Please check your email to verify your account",
         description: "Welcome! You can now login.",
       })
-      // Pass email to verification page
       // router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`)
-      console.log("stsg")
-
-      router.push("/dashboard")
+      router.push("/auth/login")
 
     } catch (error) {
       toast({
