@@ -8,6 +8,7 @@ import { generateId } from "@/lib/chat-utils"
 import type { Conversation, Message } from "@/types/chat"
 import { useToast } from "@/components/ui/use-toast"
 import { AmbientOrbs } from "@/components/ui/ambient-orbs"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 
 export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>(mockConversations)
@@ -117,41 +118,43 @@ export default function ChatPage() {
   )
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-background">
-      <AmbientOrbs variant="subtle" className="z-0" />
+    <ProtectedRoute>
+      <div className="relative flex h-screen overflow-hidden bg-background">
+        <AmbientOrbs variant="subtle" className="z-0" />
 
-      <div
-        className={`relative z-20 ${isSidebarCollapsed ? "hidden lg:flex" : "fixed inset-y-0 left-0 z-50 lg:relative"}`}
-      >
-        <ChatSidebar
-          conversations={conversations}
-          activeConversationId={activeConversationId}
-          onSelectConversation={handleSelectConversation}
-          onNewConversation={handleNewConversation}
-          onDeleteConversation={handleDeleteConversation}
-          onRenameConversation={handleRenameConversation}
-          isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        />
-      </div>
-
-      {!isSidebarCollapsed && (
         <div
-          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
-          onClick={() => setIsSidebarCollapsed(true)}
-        />
-      )}
+          className={`relative z-20 ${isSidebarCollapsed ? "hidden lg:flex" : "fixed inset-y-0 left-0 z-50 lg:relative"}`}
+        >
+          <ChatSidebar
+            conversations={conversations}
+            activeConversationId={activeConversationId}
+            onSelectConversation={handleSelectConversation}
+            onNewConversation={handleNewConversation}
+            onDeleteConversation={handleDeleteConversation}
+            onRenameConversation={handleRenameConversation}
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          />
+        </div>
 
-      <div className="relative z-10 flex-1">
-        <ChatArea
-          messages={messages}
-          isLoading={isLoading}
-          onSend={handleSendMessage}
-          onAction={handleAction}
-          onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          isSidebarCollapsed={isSidebarCollapsed}
-        />
+        {!isSidebarCollapsed && (
+          <div
+            className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
+            onClick={() => setIsSidebarCollapsed(true)}
+          />
+        )}
+
+        <div className="relative z-10 flex-1">
+          <ChatArea
+            messages={messages}
+            isLoading={isLoading}
+            onSend={handleSendMessage}
+            onAction={handleAction}
+            onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            isSidebarCollapsed={isSidebarCollapsed}
+          />
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   )
 }
