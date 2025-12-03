@@ -1,6 +1,6 @@
-import { Suspense } from "react"
-import { AuthLayout } from "@/components/auth/auth-layout"
-import { VerifyEmailForm } from "@/components/auth/verify-email-form"
+// import { Suspense } from "react"
+// import { AuthLayout } from "@/components/auth/auth-layout"
+// import { VerifyEmailForm } from "@/components/auth/verify-email-form"
 
 export const metadata = {
   title: "Verify Email | Decisio.ai",

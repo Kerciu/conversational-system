@@ -25,7 +25,7 @@ export function ChatArea({
   onSend,
   onAction,
   onToggleSidebar,
-  isSidebarCollapsed,
+  // isSidebarCollapsed,
 }: ChatAreaProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const isEmpty = messages.length === 0

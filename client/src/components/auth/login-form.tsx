@@ -73,6 +73,7 @@ export function LoginForm() {
       })
       router.push("/chat")
     } catch (error) {
+      console.log(error)
       toast({
         title: "Login Failed",
         description: "Could not sign in with Google",
@@ -97,6 +98,7 @@ export function LoginForm() {
       })
       router.push("/chat")
     } catch (error) {
+      console.log(error)
       toast({
         title: "Login Failed",
         description: "Could not sign in with GitHub",
