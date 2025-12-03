@@ -73,15 +73,6 @@ export default function HomePage() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-            <Link href="/chat">
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-border/60 bg-secondary/30 hover:bg-secondary/60 backdrop-blur-sm text-foreground px-8 h-12 text-base"
-              >
-                Try Demo
-              </Button>
-            </Link>
           </div>
         </div>
 
