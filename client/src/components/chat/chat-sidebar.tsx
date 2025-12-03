@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   Search,
@@ -56,6 +56,8 @@ export function ChatSidebar({
   const [searchQuery, setSearchQuery] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState("")
+  const [userEmail, setUserEmail] = useState("user@example.com")
+  const [userName, setUserName] = useState("User")
   const { logout } = useAuth()
   const router = useRouter()
 
@@ -82,6 +84,39 @@ export function ChatSidebar({
     logout()
     router.push("/auth/login")
   }
+  
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const API_BASE = 'http://localhost:8080'
+      try {
+        const [emailRes, usernameRes] = await Promise.all([
+          fetch(`${API_BASE}/api/dashboard/get-email`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem("token")}`,
+            }
+          }),
+          fetch(`${API_BASE}/api/dashboard/get-username`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem("token")}`,
+            }
+          })
+        ])
+
+        if (emailRes.ok) {
+          const email = await emailRes.text()
+          setUserEmail(email)
+        }
+        if (usernameRes.ok) {
+          const username = await usernameRes.text()
+          setUserName(username)
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error)
+      }
+    }
+
+    fetchUserData()
+  }, [])
 
   if (isCollapsed) {
     return (
@@ -329,8 +364,8 @@ export function ChatSidebar({
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 overflow-hidden">
-                <p className="truncate text-sm font-medium">User</p>
-                <p className="truncate text-xs text-muted-foreground">user@example.com</p>
+                <p className="truncate text-sm font-medium">{userName}</p>
+                <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </button>
