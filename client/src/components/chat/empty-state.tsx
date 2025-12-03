@@ -26,7 +26,7 @@ export function EmptyState({ onSelectPrompt }: EmptyStateProps) {
           What decision problem would you like to solve?
         </h1>
         <p className="mb-10 text-muted-foreground">
-          Describe your optimization challenge in natural language, and I'll help you build a mathematical model and
+          Describe your optimization challenge in natural language, and I&apos;tll help you build a mathematical model and
           generate the code to solve it.
         </p>
 
