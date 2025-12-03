@@ -61,6 +61,9 @@ export function ChatSidebar({
   const { logout } = useAuth()
   const router = useRouter()
 
+  const userInitials = (userName && userName !== "User") 
+    ? userName.slice(0, 2).toUpperCase() 
+    : "?";
   const filteredConversations = conversations.filter((conv) =>
     conv.title.toLowerCase().includes(searchQuery.toLowerCase()),
   )
@@ -190,7 +193,7 @@ export function ChatSidebar({
                     <button className="flex h-10 w-full items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground">
                       <Avatar className="h-7 w-7">
                         <AvatarFallback className="bg-gradient-to-br from-primary/30 to-accent/20 text-xs text-primary">
-                          U
+                          {userInitials}
                         </AvatarFallback>
                       </Avatar>
                     </button>
@@ -360,7 +363,7 @@ export function ChatSidebar({
             <button className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-secondary/50 group">
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-gradient-to-br from-primary/30 to-accent/20 text-primary group-hover:from-primary/40 group-hover:to-accent/30 transition-colors">
-                  U
+                  {userInitials}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 overflow-hidden">
