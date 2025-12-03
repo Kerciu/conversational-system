@@ -34,7 +34,6 @@ export function RegisterForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validation
     if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
       toast({
         title: "Validation Error",
