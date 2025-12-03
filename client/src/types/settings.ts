@@ -21,26 +21,3 @@ export interface UserPreferences {
     codeExecutionTimeout: number
   }
 }
-
-export interface ApiKey {
-  id: string
-  name: string
-  maskedKey: string
-  lastUsed: string | null
-  createdAt: string
-}
-
-export interface ActiveSession {
-  id: string
-  device: string
-  browser: string
-  location: string
-  lastActive: string
-  current: boolean
-}
-
-export interface StorageUsage {
-  used: number
-  total: number
-  conversationsCount: number
-}
