@@ -1,5 +1,5 @@
 {
-  "name": "my-v0-project",
+  "name": "client",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -61,6 +61,7 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@eslint/compat": "^2.0.0",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
     "@types/react": "^19",
