@@ -34,7 +34,8 @@ public class AuthenticationService {
 
     public void registerUser(String username, String email, String password) {
         verifyEmail(email);
-        verifyUsernameEmailAreUnique(username, email);
+        verifyEmailUnique(email);
+        verifyUsernameUnique(username);
         User newUser = new User(email, username, passwordEncoder.encode(password));
         userRepository.save(newUser);
         sendVerificationEmail(newUser);
@@ -82,21 +83,24 @@ public class AuthenticationService {
         return userRepository.findByEmail(email)
                 .orElseGet(() -> {
                     verifyEmail(email);
-                    verifyUsernameEmailAreUnique(username, email);
+                    verifyEmailUnique(email);
+                    verifyUsernameUnique(username);
                     User newUser = new User(email, username, null);
                     return userRepository.save(newUser);
                 });
     }
     
-    private void verifyEmail(String email) {
+    public void verifyEmail(String email) {
         String emailRegex = "^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$";
         if(email == null || !email.matches(emailRegex)) throw new RuntimeException("Provided email address ("+email+") is incorrect.");
     }
 
-    private void verifyUsernameEmailAreUnique(String username, String email) {
+    public void verifyEmailUnique(String email) {
         Optional<User> userOptionalEmail = userRepository.findByEmail(email);
         if (userOptionalEmail.isPresent()) throw new RuntimeException("Email " + email + " already taken.");
+    }
 
+    public void verifyUsernameUnique(String username) {
         Optional<User> userOptionalUsername = userRepository.findByUsername(username);
         if (userOptionalUsername.isPresent()) throw new RuntimeException("Username " + username + " already taken.");
     }
