@@ -105,4 +105,10 @@ public class AuthenticationService {
         // to be implemented 
     }
 
+    public User extractUser(Authentication authentication){
+        String username = authentication.getName();
+        Optional<User> user_opt = userRepository.findByUsername(username);
+        if (user_opt.isEmpty()) throw new RuntimeException("Authenticated user not found (username: "+ username+").\n");
+        return user_opt.get();
+    }
 }
