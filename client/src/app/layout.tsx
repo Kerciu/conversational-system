@@ -1,7 +1,6 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
 import { AuthProvider } from "@/contexts/auth-context"
 import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
@@ -50,7 +49,6 @@ export default function RootLayout({
           {children}
           <Toaster />
         </AuthProvider>
-        <Analytics />
       </body>
     </html>
   )
