@@ -20,8 +20,6 @@ public class DashboardController {
 
     @GetMapping("/get-email")
     public ResponseEntity<String> getUserEmail(Authentication authentication){
-        System.out.println("/get-email AUTH = " + authentication);
-
         try {
             return ResponseEntity.status(HttpStatus.OK).body(authenticationService.extractUser(authentication).getEmail());
         } catch (Exception e) {
@@ -31,8 +29,6 @@ public class DashboardController {
     
     @GetMapping("/get-username")
     public ResponseEntity<String> getUserUsername(Authentication authentication){
-        System.out.println("/get-username AUTH = " + authentication);
-
         try {
             return ResponseEntity.status(HttpStatus.OK).body(authenticationService.extractUser(authentication).getUsername());
         } catch (Exception e) {
