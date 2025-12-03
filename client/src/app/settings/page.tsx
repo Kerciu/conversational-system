@@ -69,17 +69,72 @@ export default function SettingsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
 
   // Load profile data
-  useEffect(() => {
+useEffect(() => {
     const loadData = async () => {
       setIsLoading(true)
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      const loadedProfile = getProfile()
-      setProfile(loadedProfile)
-      setOriginalProfile(loadedProfile)
-      setIsLoading(false)
+      try {
+        const token = localStorage.getItem('token')
+        
+        // Fetch username
+        const usernameResponse = await fetch('http://localhost:8080/api/dashboard/get-username', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        const username = await usernameResponse.text()
+        
+        // Fetch email
+        const emailResponse = await fetch('http://localhost:8080/api/dashboard/get-email', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        const email = await emailResponse.text()
+        
+       // Fetch creation date
+        const creationDateResponse = await fetch('http://localhost:8080/api/settings/get-creation-date', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        const creationDate = await creationDateResponse.text()
+
+        // Fetch verification status
+        const verifiedResponse = await fetch('http://localhost:8080/api/settings/get-is-verified', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        const verificationState = await verifiedResponse.text()
+        const isVerified = verificationState === "verified"
+        
+        // Load local profile data (for avatar)
+        const localProfile = getProfile()
+        
+        // Merge backend data with local data
+        const loadedProfile: UserProfile = {
+          username,
+          email,
+          emailVerified: isVerified,
+          createdAt: creationDate,
+          avatarUrl: localProfile.avatarUrl
+        }
+        
+        setProfile(loadedProfile)
+        setOriginalProfile(loadedProfile)
+      } catch (error) {
+        console.error('Error loading profile:', error)
+        toast({
+          title: "Error loading profile",
+          description: "Could not fetch user data from server.",
+          variant: "destructive"
+        })
+      } finally {
+        setIsLoading(false)
+      }
     }
     loadData()
-  }, [])
+  }, [toast])
 
   const hasProfileChanges = JSON.stringify(profile) !== JSON.stringify(originalProfile)
 
@@ -126,17 +181,64 @@ export default function SettingsPage() {
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
+
   // Save profile
-  const handleSaveProfile = async () => {
-    if (!profile) return
+const handleSaveProfile = async () => {
+    if (!profile || !originalProfile) return
     setIsSavingProfile(true)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const token = localStorage.getItem('token')
+      
+      // Check if username changed
+      if (profile.username !== originalProfile.username) {
+        const response = await fetch('http://localhost:8080/api/settings/change-username', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain',
+            'Authorization': `Bearer ${token}`
+          },
+          body: profile.username
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(errorText || 'Failed to change username')
+        }
+
+        const newToken = await response.text()
+        localStorage.setItem('token', newToken)
+        
+        toast({ title: "Username updated", description: "Your username has been changed successfully." })
+      }
+      
+      // Check if email changed
+      if (profile.email !== originalProfile.email) {
+        const response = await fetch('http://localhost:8080/api/settings/change-email', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'text/plain',
+            'Authorization': `Bearer ${token}`
+          },
+          body: profile.email
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(errorText || 'Failed to change email')
+        }
+
+        toast({ title: "Email updated", description: "Your email has been changed successfully." })
+      }
+      
       saveProfile(profile)
       setOriginalProfile(profile)
       toast({ title: "Profile updated", description: "Your profile has been saved successfully." })
-    } catch {
-      toast({ title: "Error saving profile", description: "Please try again.", variant: "destructive" })
+    } catch (error) {
+      toast({ 
+        title: "Error saving profile", 
+        description: error instanceof Error ? error.message : "Please try again.", 
+        variant: "destructive" 
+      })
     } finally {
       setIsSavingProfile(false)
     }
@@ -163,13 +265,33 @@ export default function SettingsPage() {
 
     setIsChangingPassword(true)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const token = localStorage.getItem('token')
+      const response = await fetch('http://localhost:8080/api/settings/change-password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          currentPassword: currentPassword,
+          newPassword: newPassword
+        })
+      })
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || 'Failed to change password')
+      }
+
       toast({ title: "Password updated", description: "Your password has been changed successfully." })
       setCurrentPassword("")
       setNewPassword("")
       setConfirmPassword("")
-    } catch {
-      toast({ title: "Error", description: "Failed to change password. Please try again.", variant: "destructive" })
+    } catch (error) {
+      toast({ 
+        title: "Error", 
+        description: error instanceof Error ? error.message : "Failed to change password. Please try again.", 
+        variant: "destructive" 
+      })
     } finally {
       setIsChangingPassword(false)
     }
@@ -194,25 +316,36 @@ export default function SettingsPage() {
     if (deleteConfirmation !== "DELETE" || !understandChecked) return
     setIsDeleting(true)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      const token = localStorage.getItem('token')
+      const response = await fetch('http://localhost:8080/api/settings/delete', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || 'Failed to delete account')
+      }
+
+      // Clear all data and redirect
       localStorage.clear()
       toast({ title: "Account deleted", description: "Your account has been permanently deleted." })
       router.push("/")
-    } catch {
-      toast({ title: "Error", description: "Could not delete your account. Please try again.", variant: "destructive" })
-    } finally {
+    } catch (error) {
+      toast({ 
+        title: "Error", 
+        description: error instanceof Error ? error.message : "Could not delete your account. Please try again.", 
+        variant: "destructive" 
+      })
       setIsDeleting(false)
     }
   }
 
   const displayAvatar = avatarPreview || profile?.avatarUrl
-  const initials = profile?.displayName
-    ? profile.displayName
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-    : profile?.username.slice(0, 2).toUpperCase() || "U"
+  const initials = profile?.username.slice(0, 2).toUpperCase() || "?"
+
 
   if (isLoading || !profile) {
     return (
@@ -277,7 +410,7 @@ export default function SettingsPage() {
               <div className="flex items-center gap-6">
                 <div className="relative">
                   <Avatar className="h-20 w-20 border-2 border-border">
-                    <AvatarImage src={displayAvatar || undefined} alt={profile.displayName} />
+                    <AvatarImage src={displayAvatar || undefined} alt={profile.username} />
                     <AvatarFallback className="bg-gradient-to-br from-violet-500/20 to-purple-600/20 text-lg">
                       {initials}
                     </AvatarFallback>
@@ -324,16 +457,16 @@ export default function SettingsPage() {
                     className="input-glow"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="displayName">Display Name</Label>
-                  <Input
-                    id="displayName"
-                    value={profile.displayName}
-                    onChange={(e) => setProfile({ ...profile, displayName: e.target.value })}
-                    placeholder="How you want to be called"
-                    className="input-glow"
-                  />
-                </div>
+                   <div className="space-y-2">
+                                  <Label>Account Created</Label>
+                                  <div className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                                    {new Date(profile.createdAt).toLocaleDateString('en-US', { 
+                                      year: 'numeric', 
+                                      month: 'long', 
+                                      day: 'numeric' 
+                                    })}
+                                  </div>
+                    </div>
               </div>
 
               <div className="space-y-2">
@@ -346,17 +479,6 @@ export default function SettingsPage() {
                     onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                     className="input-glow"
                   />
-                  {profile.emailVerified ? (
-                    <Badge variant="outline" className="shrink-0 border-success/30 bg-success/10 text-success">
-                      <CheckCircle className="mr-1 h-3 w-3" />
-                      Verified
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="shrink-0 border-amber-500/30 bg-amber-500/10 text-amber-500">
-                      <XCircle className="mr-1 h-3 w-3" />
-                      Unverified
-                    </Badge>
-                  )}
                 </div>
                 {!profile.emailVerified && (
                   <Button
@@ -580,3 +702,4 @@ export default function SettingsPage() {
     </div>
   )
 }
+

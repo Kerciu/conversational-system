@@ -1,9 +1,6 @@
 export interface UserProfile {
-  id: string
   username: string
   email: string
-  displayName: string
-  bio: string
   avatarUrl: string | null
   emailVerified: boolean
   createdAt: string
