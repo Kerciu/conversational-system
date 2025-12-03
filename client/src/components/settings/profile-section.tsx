@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-// IMPORT TWOJEGO TYPU
 import type { UserProfile } from "@/types/settings"
 
 interface ProfileSectionProps {
@@ -27,7 +26,6 @@ export function ProfileSection({ profile, onUpdate, onSave, isSaving, hasChanges
     
     const reader = new FileReader()
     reader.onload = (event) => {
-        // Aktualizacja avatara w stanie
         onUpdate({ ...profile, avatarUrl: event.target?.result as string })
     }
     reader.readAsDataURL(file)
@@ -38,10 +36,8 @@ export function ProfileSection({ profile, onUpdate, onSave, isSaving, hasChanges
       if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
-  // Fallback dla inicjałów
   const initials = profile.username ? profile.username.slice(0, 2).toUpperCase() : "??"
   
-  // Konwersja daty ze stringa
   const formattedDate = profile.createdAt 
     ? new Date(profile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : 'Unknown'
@@ -59,7 +55,6 @@ export function ProfileSection({ profile, onUpdate, onSave, isSaving, hasChanges
           <div className="flex items-center gap-6">
             <div className="relative">
               <Avatar className="h-20 w-20 border-2 border-border">
-                {/* Obsługa null w avatarUrl */}
                 <AvatarImage src={profile.avatarUrl || undefined} alt={profile.username} />
                 <AvatarFallback className="bg-gradient-to-br from-violet-500/20 to-purple-600/20 text-lg">
                     {initials}
