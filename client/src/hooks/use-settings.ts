@@ -23,39 +23,47 @@ export function useSettings() {
       const token = localStorage.getItem('token')
       if (!token) throw new Error("No token found")
 
-      const fetchText = async (endpoint: string) => {
-        const res = await fetch(`http://localhost:8080/api/${endpoint}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        return res.text()
+      const response = await fetch('http://localhost:8080/api/settings/profile', {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+             localStorage.removeItem('token')
+             router.push('/auth/login')
+             return
+        }
+        throw new Error(`Failed to fetch profile: ${response.status}`)
       }
 
-      const [username, email, createdAt, verificationState] = await Promise.all([
-        fetchText('dashboard/get-username'),
-        fetchText('dashboard/get-email'),
-        fetchText('settings/get-creation-date'),
-        fetchText('settings/get-is-verified')
-      ])
-
+      const data = await response.json()
       const localProfile = getLocalProfile()
-      
+
       const loadedProfile: UserProfile = {
-        username,
-        email,
-        emailVerified: verificationState === "verified",
-        createdAt,
-        avatarUrl: localProfile.avatarUrl || null 
+        username: data.username,
+        email: data.email,
+        emailVerified: data.verified || data.isVerified || false, 
+        createdAt: data.createdAt,
+        avatarUrl: localProfile.avatarUrl || null
       }
       
       setProfile(loadedProfile)
       setOriginalProfile(loadedProfile)
     } catch (error) {
-      console.error(error)
-      toast({ title: "Error loading profile", description: "Could not fetch user data.", variant: "destructive" })
+      console.error("Error loading profile:", error)
+      toast({ 
+        title: "Error loading profile", 
+        description: "Could not fetch user data from server.", 
+        variant: "destructive" 
+      })
     } finally {
       setIsLoading(false)
     }
-  }, [toast])
+  }, [toast, router])
+
 
   useEffect(() => {
     loadProfile()
@@ -68,17 +76,14 @@ export function useSettings() {
       const token = localStorage.getItem('token')
       if (!token) throw new Error("No authentication token found")
       
-      // 1. Zmiana Username
       if (newProfile.username !== originalProfile.username) {
         const res = await fetch('http://localhost:8080/api/settings/change-username', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json', // Zmieniamy na JSON
+            'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          // Próbujemy wysłać jako prosty string w JSON, bo endpoint prawdopodobnie bierze @RequestBody String
           body: JSON.stringify(newProfile.username) 
-          // Jeśli to nie zadziała, spróbuj: JSON.stringify({ username: newProfile.username })
         })
 
         if (!res.ok) {
@@ -90,12 +95,11 @@ export function useSettings() {
         if (newToken) localStorage.setItem('token', newToken)
       }
 
-      // 2. Zmiana Email
       if (newProfile.email !== originalProfile.email) {
         const res = await fetch('http://localhost:8080/api/settings/change-email', {
           method: 'PUT',
           headers: {
-            'Content-Type': 'application/json', // Tu też JSON
+            'Content-Type': 'application/json', 
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify(newProfile.email)
