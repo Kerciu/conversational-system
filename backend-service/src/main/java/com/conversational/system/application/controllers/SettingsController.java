@@ -16,6 +16,7 @@ import com.conversational.system.application.authentication.json_web_token.JwtSe
 import com.conversational.system.application.controllers.requests.ChangeEmailRequest;
 import com.conversational.system.application.controllers.requests.ChangePasswordRequest;
 import com.conversational.system.application.controllers.requests.ChangeUsernameRequest;
+import com.conversational.system.application.dto.UserProfileDto;
 import com.conversational.system.application.entities.user.User;
 import com.conversational.system.application.entities.user.UserService;
 
@@ -31,6 +32,25 @@ public class SettingsController {
     private final UserService userService;
     private final JwtService jwtService;
     
+    @GetMapping("/profile")
+    public ResponseEntity<UserProfileDto> getUserProfile(Authentication authentication) {
+        try {
+            var user = authenticationService.extractUser(authentication);
+            
+            UserProfileDto profile = UserProfileDto.builder()
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .isVerified(user.isVerified())
+                .createdAt(user.getCreationDate().toString())
+                .build();
+
+            return ResponseEntity.ok(profile);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     @GetMapping("/get-is-verified")
     public ResponseEntity<String> getUserUsername(Authentication authentication){
         try {
