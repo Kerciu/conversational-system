@@ -1,4 +1,4 @@
-package com.conversational.system.application.coding;
+package com.conversational.system.application.visualization;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -7,35 +7,36 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class CodingService {
+public class VisualizerService {
 
     private final RabbitTemplate rabbitTemplate;
     private final RedisTemplate<String, Object> redisTemplate;
 
-    @Value("${app.queue.code.execution}")
-    private String codeExecutionQueue;
+    @Value("${app.queue.visualization}")
+    private String visualizationQueue;
 
-    public Map<String, String> executeCode(String code) {
+    public Map<String, String> requestVisualization(String solverOutput, String context) {
         String jobId = UUID.randomUUID().toString();
 
         Map<String, String> message = Map.of(
                 "jobId", jobId,
-                "taskType", "coding",
-                "code", code
+                "taskType", "visualize",
+                "solverOutput", solverOutput,
+                "context", context
         );
 
-        rabbitTemplate.convertAndSend(codeExecutionQueue, message);
+        rabbitTemplate.convertAndSend(visualizationQueue, message);
 
-        System.out.println("Job submitted to sandbox with jobId #" + jobId);
+        System.out.println("Visualization job submitted with jobId #" + jobId);
+        
         return Map.of("jobId", jobId);
     }
 
-    public Object getCodeExecutionResult(String jobId) {
+    public Object getVisualizationResult(String jobId) {
         return redisTemplate.opsForValue().get(jobId);
     }
 }
