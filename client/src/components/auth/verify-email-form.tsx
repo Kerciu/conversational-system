@@ -1,3 +1,5 @@
+// THIS WILL BE IMPLEMENTED ALONG EMAIL VERIFICATION ON A SEPARATE BRANCH
+
 // "use client"
 
 // import type React from "react"

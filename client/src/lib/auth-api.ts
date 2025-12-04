@@ -43,6 +43,7 @@ export const authApi = {
     return handleResponse(response)
   },
 
+  // THIS WILL BE IMPLEMENTED ALONGSIDE ACCOUNT VERIFICATION ON A SEPARATE BRANCH
   // verifyAccount: async (verificationCode: string): Promise<string> => {
   //   const response = await fetch(
   //     `${API_BASE}/verify-account?verificationCode=${encodeURIComponent(verificationCode)}`,

@@ -1,3 +1,5 @@
+// THIS WILL BE IMPLEMENTED ALONG EMAIL VERIFICATION ON A SEPARATE BRANCH
+
 // import { Suspense } from "react"
 // import { AuthLayout } from "@/components/auth/auth-layout"
 // import { VerifyEmailForm } from "@/components/auth/verify-email-form"
