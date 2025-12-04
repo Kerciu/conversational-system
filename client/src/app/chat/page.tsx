@@ -9,6 +9,7 @@ import type { Conversation, Message } from "@/types/chat"
 import { useToast } from "@/components/ui/use-toast"
 import { AmbientOrbs } from "@/components/ui/ambient-orbs"
 import { ProtectedRoute } from "@/components/auth/protected-route"
+import { chatApi } from "@/lib/chat-api"
 
 export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>(mockConversations)
@@ -63,7 +64,9 @@ export default function ChatPage() {
         type: "text",
       }
 
-      if (!activeConversationId) {
+      let currentConvId = activeConversationId
+
+      if (!currentConvId) {
         const newConv: Conversation = {
           id: generateId(),
           title: content.slice(0, 50) + (content.length > 50 ? "..." : ""),
@@ -73,38 +76,82 @@ export default function ChatPage() {
         }
         setConversations((prev) => [newConv, ...prev])
         setActiveConversationId(newConv.id)
+        currentConvId = newConv.id
       } else {
         setConversations((prev) =>
           prev.map((c) =>
-            c.id === activeConversationId ? { ...c, messages: [...c.messages, userMessage], updatedAt: new Date() } : c,
+            c.id === currentConvId ? { ...c, messages: [...c.messages, userMessage], updatedAt: new Date() } : c,
           ),
         )
       }
 
       setIsLoading(true)
-      await new Promise((resolve) => setTimeout(resolve, 1500))
 
-      const aiMessage: Message = {
-        id: generateId(),
-        role: "assistant",
-        content: `I understand you're looking to solve a decision problem: "${content.slice(0, 100)}..."\n\nLet me analyze this and create a mathematical model for you. Based on your description, this appears to be an optimization problem that can be formulated as follows:\n\n**Objective Function:**\nMaximize or minimize the target metric based on your constraints.\n\n**Decision Variables:**\nThe key variables that we need to determine.\n\n**Constraints:**\n- Resource limitations\n- Capacity bounds\n- Logical requirements`,
-        timestamp: new Date(),
-        type: "model",
-        actions: [
-          { label: "Accept Model", variant: "primary" },
-          { label: "Generate Code", variant: "secondary" },
-        ],
+      try {
+        // Generate unique job ID
+        const jobId = `job-${generateId()}`
+
+        // Submit job to backend
+        const submitResponse = await chatApi.submitJob({
+          jobId,
+          agentType: "MODELER_AGENT",
+          prompt: content,
+        })
+
+        if (submitResponse.status !== "ok") {
+          throw new Error(submitResponse.message || "Failed to submit job")
+        }
+
+        // Poll for job status every 1 second
+        const result = await chatApi.pollJobStatus(jobId, (status) => {
+          console.log(`Job ${jobId} status:`, status.status)
+        })
+
+        // Create AI message with the result
+        const aiMessage: Message = {
+          id: generateId(),
+          role: "assistant",
+          content: result.answer || "Job completed but no answer received.",
+          timestamp: new Date(),
+          type: "model",
+          actions: [
+            { label: "Accept Model", variant: "primary" },
+            { label: "Generate Code", variant: "secondary" },
+          ],
+        }
+
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === currentConvId ? { ...c, messages: [...c.messages, aiMessage], updatedAt: new Date() } : c,
+          ),
+        )
+      } catch (error) {
+        console.error("Error processing message:", error)
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to process message",
+          variant: "destructive",
+        })
+
+        // Add error message to chat
+        const errorMessage: Message = {
+          id: generateId(),
+          role: "assistant",
+          content: "Sorry, I encountered an error processing your request. Please try again.",
+          timestamp: new Date(),
+          type: "text",
+        }
+
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === currentConvId ? { ...c, messages: [...c.messages, errorMessage], updatedAt: new Date() } : c,
+          ),
+        )
+      } finally {
+        setIsLoading(false)
       }
-
-      const targetId = activeConversationId || conversations[0]?.id
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === targetId ? { ...c, messages: [...c.messages, aiMessage], updatedAt: new Date() } : c,
-        ),
-      )
-      setIsLoading(false)
     },
-    [activeConversationId, conversations],
+    [activeConversationId, toast],
   )
 
   const handleAction = useCallback(
