@@ -91,11 +91,25 @@ export default function ChatPage() {
         // Generate unique job ID
         const jobId = `job-${generateId()}`
 
-        // Submit job to backend
+        // Build full conversation history for context
+        const currentConv = conversations.find((c) => c.id === currentConvId)
+        const conversationHistory = currentConv
+          ? currentConv.messages
+              .filter((msg) => msg.role === "user")
+              .map((msg) => msg.content)
+              .join("\n\n=== NEXT USER MESSAGE ===\n\n")
+          : ""
+
+        // Always send full history + new message
+        const fullPrompt = conversationHistory
+          ? `${conversationHistory}\n\n=== NEXT USER MESSAGE ===\n\n${content}`
+          : content
+
+        // Submit job to backend with full conversation context
         const submitResponse = await chatApi.submitJob({
           jobId,
           agentType: "MODELER_AGENT",
-          prompt: content,
+          prompt: fullPrompt,
         })
 
         if (submitResponse.status !== "ok") {
@@ -115,8 +129,7 @@ export default function ChatPage() {
           timestamp: new Date(),
           type: "model",
           actions: [
-            { label: "Accept Model", variant: "primary" },
-            { label: "Generate Code", variant: "secondary" },
+            { label: "Accept model and generate code", variant: "primary" },
           ],
         }
 
