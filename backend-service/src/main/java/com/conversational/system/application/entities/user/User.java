@@ -1,6 +1,7 @@
 package com.conversational.system.application.entities.user;
 
 import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -36,12 +37,13 @@ public class User {
 
     @Column(name = "is_verified", nullable = false)
     private boolean isVerified;
-    
+
     public User(String email, String username, String passwordHash) {
         this.email = email;
         this.username = username;
         this.passwordHash = passwordHash;
         this.creationDate = LocalDateTime.now();
-        this.isVerified = true; // will be initialized to false when email verification is implemented
+        this.isVerified = false; 
     }
+
 }
