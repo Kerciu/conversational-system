@@ -63,13 +63,13 @@ public class RegistrationTests {
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
         when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
         when(passwordEncoder.encode(password)).thenReturn(encodedPassword);
-        
+
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
-            user.setId(1); 
+            user.setId(1);
             return user;
         });
-        
+
         doNothing().when(emailSender).sendVerificationEmail(anyString(), anyString(), anyString());
         doNothing().when(codeCacheService).saveVerificationCode(anyString(), any(Integer.class));
 
@@ -84,7 +84,7 @@ public class RegistrationTests {
         User savedUser = userCaptor.getValue();
         assertEquals(username, savedUser.getUsername());
         assertEquals(email, savedUser.getEmail());
-        assertEquals(encodedPassword, savedUser.getPasswordHash());        
+        assertEquals(encodedPassword, savedUser.getPasswordHash());
     }
 
     @Test
@@ -92,7 +92,7 @@ public class RegistrationTests {
         String email = "existing@example.com";
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(new User()));
 
-        // MAKE SURE EXCEPTION IS THROWN & USER WAS NOT SAVED 
+        // MAKE SURE EXCEPTION IS THROWN & USER WAS NOT SAVED
         assertThrows(RuntimeException.class, () -> {
             authenticationService.registerUser("user", email, "password");
         });
@@ -105,8 +105,8 @@ public class RegistrationTests {
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(new User()));
 
-        // MAKE SURE EXCEPTION IS THROWN & USER WAS NOT SAVED 
-        assertThrows(RuntimeException.class, () -> { // lub stwórz UsernameAlreadyExistsException
+        // MAKE SURE EXCEPTION IS THROWN & USER WAS NOT SAVED
+        assertThrows(RuntimeException.class, () -> {
             authenticationService.registerUser(username, "new@test.com", "password");
         });
         verify(userRepository, never()).save(any(User.class));
@@ -116,7 +116,7 @@ public class RegistrationTests {
     void shouldThrowException_WhenEmailIsInvalid() {
         String invalidEmail = "not-an-email";
 
-        // MAKE SURE EXCEPTION IS THROWN & USER WAS NOT SAVED 
+        // MAKE SURE EXCEPTION IS THROWN & USER WAS NOT SAVED
         assertThrows(RuntimeException.class, () -> {
             authenticationService.registerUser("user", invalidEmail, "password");
         });
