@@ -55,7 +55,7 @@ public class LoginTests {
 
     @Test
     void shouldThrowException_WhenCredentialsAreInvalid() {
-        //  MOCK AUTHENTICATION MANAGER THROWING BAD CREDENTIALS EXCEPTION
+        // MOCK AUTHENTICATION MANAGER THROWING BAD CREDENTIALS EXCEPTION
         String username = "user";
         String password = "wrong-password";
 
@@ -93,7 +93,7 @@ public class LoginTests {
 
     @Test
     void shouldThrowException_WhenUsernameIsNull() {
-        // MOCK NULL USERNAME INPUT 
+        // MOCK NULL USERNAME INPUT
         assertThrows(Exception.class, () -> {
             authenticationService.loginUser(null, "password");
         });

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Account verification</title>
+</head>
+
+<body style="
+    margin:0;
+    padding:0;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background:#020617;
+    color:#e2e8f0;
+">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" bgcolor="#020617" style="
+           background-color:#020617;
+           background:radial-gradient(circle at top center, #1e1b4b 0%, #020617 100%);
+       ">
+        <tr>
+            <td align="center" style="padding:40px 16px;">
+
+                <!-- glass card -->
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="
+                       max-width:600px;
+                       border-radius:24px;
+                       overflow:hidden;
+                       box-shadow:0 20px 40px rgba(0,0,0,0.4);
+                       background:rgba(255,255,255,0.03);
+                       border:1px solid rgba(255,255,255,0.08);
+                       backdrop-filter:blur(10px);
+                       -webkit-backdrop-filter:blur(10px);
+                   ">
+                    <!-- header -->
+                    <tr>
+                        <td style="
+                        padding:40px 48px 20px;
+                        text-align:center;
+                    ">
+                            <!-- Optional: Logo placeholder or icon -->
+                            <div style="
+                            display:inline-block;
+                            padding:8px 16px;
+                            border-radius:99px;
+                            background:rgba(99, 102, 241, 0.1);
+                            border:1px solid rgba(99, 102, 241, 0.2);
+                            color:#818cf8;
+                            font-size:12px;
+                            font-weight:600;
+                            text-transform:uppercase;
+                            letter-spacing:1px;
+                            margin-bottom:24px;
+                        ">
+                                Conversational System
+                            </div>
+
+                            <h1 style="
+                            margin:0;
+                            font-size:32px;
+                            font-weight:700;
+                            letter-spacing:-0.5px;
+                            color:#ffffff;
+                            background:linear-gradient(to right, #22d3ee, #3b82f6, #a855f7);
+                            -webkit-background-clip:text;
+                            background-clip:text;
+                            -webkit-text-fill-color:transparent;
+                            display:inline-block;
+                        ">
+                                Verify your account
+                            </h1>
+                            <p style="margin:16px 0 0; font-size:16px; color:#94a3b8;">
+                                Hello <strong style="color:#e2e8f0;">{{username}}</strong>,
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- content -->
+                    <tr>
+                        <td style="padding:10px 48px 48px; text-align:center;">
+                            <p style="margin:0 0 24px; font-size:15px; line-height:1.6; color:#cbd5e1;">
+                                Welcome to the future of decision making. To get started with our AI-powered platform,
+                                please verify your account.
+                            </p>
+
+                            <!-- button with glow -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" align="center"
+                                style="margin:0 auto 32px;">
+                                <tr>
+                                    <td
+                                        style="border-radius:12px; background:linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); box-shadow:0 0 20px rgba(37, 99, 235, 0.5);">
+                                        <a href="{{verificationUrl}}" style="
+                                           display:inline-block;
+                                           padding:16px 36px;
+                                           font-size:16px;
+                                           color:#ffffff;
+                                           text-decoration:none;
+                                           font-weight:600;
+                                           border-radius:12px;
+                                           background:transparent;
+                                       ">
+                                            Confirm Account &rarr;
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <div style="border-top:1px solid rgba(255,255,255,0.08); margin:24px 0;"></div>
+
+                            <p style="margin:0 0 8px; font-size:13px; color:#64748b; line-height:1.5;">
+                                Or paste this link into your browser:
+                            </p>
+                            <p style="margin:0; font-size:13px; word-break:break-all;">
+                                <a href="{{verificationUrl}}" style="color:#818cf8; text-decoration:none;">
+                                    {{verificationUrl}}
+                                </a>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- footer -->
+                    <tr>
+                        <td style="
+                        padding:24px;
+                        background:rgba(0,0,0,0.2);
+                        text-align:center;
+                    ">
+                            <p style="margin:0; font-size:12px; color:#475569;">
+                                &copy; 2025 decisio.ai. All rights reserved.
+                            </p>
+                            <p style="margin:8px 0 0; font-size:12px; color:#475569;">
+                                If you didn't create this account, you can ignore this email.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>
