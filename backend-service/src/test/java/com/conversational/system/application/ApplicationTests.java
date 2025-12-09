@@ -9,21 +9,21 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import com.conversational.system.application.authentication.AuthenticationService;
 import com.conversational.system.application.authentication.email_sender.EmailSender;
 
 import jakarta.activation.DataSource;
-    
 
 class ApplicationTests {
 	@Mock
-    private EmailSender emailSender;
-	@MockBean
-    private DataSource dataSource;
+	private EmailSender emailSender;
+	@MockitoBean
+	private DataSource dataSource;
 
-	@MockBean
-    private AuthenticationService authenticationService;
+	@MockitoBean
+	private AuthenticationService authenticationService;
+
 	@TestConfiguration
 	static class MockBeanConfiguration {
 
@@ -37,7 +37,8 @@ class ApplicationTests {
 		@Primary
 		public RedisTemplate<String, Object> testRedisTemplate() {
 			@SuppressWarnings("unchecked")
-			RedisTemplate<String, Object> mockTemplate = (RedisTemplate<String, Object>) Mockito.mock(RedisTemplate.class);
+			RedisTemplate<String, Object> mockTemplate = (RedisTemplate<String, Object>) Mockito
+					.mock(RedisTemplate.class);
 			return mockTemplate;
 		}
 	}
