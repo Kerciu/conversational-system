@@ -5,92 +5,17 @@ import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import type { Message } from "@/types/chat"
-import { BlockMath } from 'react-katex'
+import ReactMarkdown from 'react-markdown'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import remarkGfm from 'remark-gfm'
 import 'katex/dist/katex.min.css'
+import { BlockMath, InlineMath } from 'react-katex'
+import { preprocessLaTeX } from "@/lib/latex-utils"
 
 interface ChatMessageProps {
   message: Message
   onAction?: (action: string) => void
-}
-
-// Funkcja do czyszczenia LaTeX z markdown code blocks
-function cleanLatexContent(content: string): string {
-  return content
-    .replace(/```latex\n?/g, '')
-    .replace(/```\n?$/g, '')
-    .trim()
-}
-
-// Funkcja sprawdzająca czy content zawiera LaTeX
-function hasLatexContent(content: string): boolean {
-  return content.includes('```latex') || 
-         content.includes('\\begin{') || 
-         content.includes('\\end{') ||
-         content.includes('\\text{') ||
-         content.includes('\\item')
-}
-
-// Komponent do renderowania LaTeX
-function LatexRenderer({ content }: { content: string }) {
-  const cleaned = cleanLatexContent(content)
-  
-  // Podziel na bloki: każde \begin{...}\end{...} to osobny blok
-  const blocks: string[] = []
-  const regex = /\\begin\{[^}]+\}[\s\S]*?\\end\{[^}]+\}/g
-  let lastIndex = 0
-  let match
-  
-  while ((match = regex.exec(cleaned)) !== null) {
-    // Dodaj blok matematyczny
-    blocks.push(match[0])
-    lastIndex = match.index + match[0].length
-  }
-  
-  // Pozostały tekst po ostatnim bloku (jeśli zawiera &, \\, \text - to też LaTeX)
-  if (lastIndex < cleaned.length) {
-    const remaining = cleaned.slice(lastIndex).trim()
-    if (remaining) {
-      // Sprawdź czy to LaTeX alignment (zawiera & i \\)
-      if (remaining.includes('&') && remaining.includes('\\\\')) {
-        // Owiń w align*
-        blocks.push(`\\begin{align*}\n${remaining}\n\\end{align*}`)
-      } else if (remaining.includes('\\text') || remaining.includes('\\')) {
-        // Inne komendy LaTeX - renderuj każdą linię osobno
-        const lines = remaining.split('\\\\').filter(l => l.trim())
-        lines.forEach(line => {
-          if (line.trim()) {
-            blocks.push(line.trim())
-          }
-        })
-      }
-    }
-  }
-  
-  // Jeśli nie znaleziono bloków, spróbuj renderować całość
-  if (blocks.length === 0) {
-    blocks.push(cleaned)
-  }
-  
-  return (
-    <div className="my-4 space-y-4">
-      {blocks.map((block, idx) => (
-        <div key={idx} className="overflow-x-auto">
-          <BlockMath 
-            math={block}
-            errorColor="#ef4444"
-            renderError={(error) => {
-              console.error('KaTeX error:', error)
-              return (
-                <pre className="overflow-x-auto rounded-lg bg-background/50 p-2 text-xs text-muted-foreground">
-                  <code>{block}</code>
-                </pre>
-              )
-            }}
-          />
-        </div>
-      ))}
-    </div>
-  )
 }
 
 export function ChatMessage({ message, onAction }: ChatMessageProps) {
@@ -102,9 +27,6 @@ export function ChatMessage({ message, onAction }: ChatMessageProps) {
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
-
-  // Sprawdź czy to LaTeX
-  const containsLatex = hasLatexContent(message.content)
 
   return (
     <div className={cn("group flex gap-4 py-6", isUser ? "justify-end" : "justify-start")}>
@@ -127,40 +49,37 @@ export function ChatMessage({ message, onAction }: ChatMessageProps) {
                 <code>{message.content}</code>
               </pre>
             </div>
-          ) : message.type === "model" && containsLatex ? (
-            <div className="prose prose-sm max-w-none dark:prose-invert">
-              <LatexRenderer content={message.content} />
-            </div>
           ) : message.type === "model" ? (
-            <div className="space-y-3">
-              <div className="prose prose-invert prose-sm max-w-none">
-                {message.content.split("\n").map((line, i) => {
-                  if (line.startsWith("**") && line.endsWith("**")) {
-                    return (
-                      <p key={i} className="font-semibold text-foreground">
-                        {line.replace(/\*\*/g, "")}
-                      </p>
-                    )
+            <div className="prose prose-invert prose-sm max-w-none [&_pre]:bg-background/50 [&_pre]:p-3 [&_pre]:rounded-lg [&_code]:text-sm">
+              <ReactMarkdown
+                remarkPlugins={[remarkMath, remarkGfm]}
+                rehypePlugins={[rehypeKatex]}
+                components={{
+                  p: ({ children }) => <p className="leading-relaxed mb-4 last:mb-0">{children}</p>,
+                  h1: ({ children }) => <h1 className="text-xl font-bold mt-6 mb-3 text-primary">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-lg font-bold mt-5 mb-2 text-primary/90">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-base font-semibold mt-4 mb-2 text-foreground">{children}</h3>,
+                  ul: ({ children }) => <ul className="list-disc pl-5 mb-4 space-y-1">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal pl-5 mb-4 space-y-1">{children}</ol>,
+                  li: ({ children }) => <li className="pl-1">{children}</li>,
+                  strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
+                  // Override math components to use react-katex for better error handling/display
+                  // @ts-ignore
+                  math: ({ value }) => <div className="overflow-x-auto my-4 flex justify-center"><BlockMath math={value} /></div>,
+                  // @ts-ignore
+                  inlineMath: ({ value }) => <InlineMath math={value} />,
+                  code: ({ node, className, children, ...props }) => {
+                    // Fallback for code blocks that might be misinterpreted or handled standardly
+                    const match = /language-(\w+)/.exec(className || '')
+                    return <code className={className} {...props}>{children}</code>
                   }
-                  if (line.startsWith("- ")) {
-                    return (
-                      <p key={i} className="ml-4 text-muted-foreground">
-                        • {line.substring(2)}
-                      </p>
-                    )
-                  }
-                  return line ? (
-                    <p key={i} className="text-muted-foreground">
-                      {line}
-                    </p>
-                  ) : (
-                    <br key={i} />
-                  )
-                })}
-              </div>
+                }}
+              >
+                {preprocessLaTeX(message.content)}
+              </ReactMarkdown>
             </div>
           ) : (
-            <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+            <p className="whitespace-pre-wrap text-xs leading-relaxed">{message.content}</p>
           )}
         </div>
 
