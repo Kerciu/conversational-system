@@ -59,8 +59,12 @@ public class CodeCacheService {
 
     // PRIVATE HELPER METHODS
     private void saveCode(String prefix, String code, Integer userId, long ttlMinutes) {
-        String key = prefix + code;
-        redisTemplate.opsForValue().set(key, userId, ttlMinutes, TimeUnit.MINUTES);
+        try {
+            String key = prefix + code;
+            redisTemplate.opsForValue().set(key, userId, ttlMinutes, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            throw new RuntimeException("Error while saving code.", e);
+        }
     }
     
     private Integer getUserIdByCode(String prefix, String code) {
