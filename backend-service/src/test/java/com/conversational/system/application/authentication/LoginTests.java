@@ -13,7 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -56,7 +55,7 @@ public class LoginTests {
 
     @Test
     void shouldThrowException_WhenCredentialsAreInvalid() {
-        //  MOCK AUTHENTICATION MANAGER THROWING BAD CREDENTIALS EXCEPTION
+        // MOCK AUTHENTICATION MANAGER THROWING BAD CREDENTIALS EXCEPTION
         String username = "user";
         String password = "wrong-password";
 
@@ -94,7 +93,7 @@ public class LoginTests {
 
     @Test
     void shouldThrowException_WhenUsernameIsNull() {
-        // MOCK NULL USERNAME INPUT 
+        // MOCK NULL USERNAME INPUT
         assertThrows(Exception.class, () -> {
             authenticationService.loginUser(null, "password");
         });
