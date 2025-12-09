@@ -95,9 +95,9 @@ export default function ChatPage() {
         const currentConv = conversations.find((c) => c.id === currentConvId)
         const conversationHistory = currentConv
           ? currentConv.messages
-              .filter((msg) => msg.role === "user")
-              .map((msg) => msg.content)
-              .join("\n\n=== NEXT USER MESSAGE ===\n\n")
+            .filter((msg) => msg.role === "user")
+            .map((msg) => msg.content)
+            .join("\n\n=== NEXT USER MESSAGE ===\n\n")
           : ""
 
         // Always send full history + new message
@@ -164,7 +164,7 @@ export default function ChatPage() {
         setIsLoading(false)
       }
     },
-    [activeConversationId, toast],
+    [activeConversationId, toast, conversations],
   )
 
   const handleAction = useCallback(

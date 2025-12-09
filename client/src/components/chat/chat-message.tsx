@@ -64,13 +64,12 @@ export function ChatMessage({ message, onAction }: ChatMessageProps) {
                   li: ({ children }) => <li className="pl-1">{children}</li>,
                   strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
                   // Override math components to use react-katex for better error handling/display
-                  // @ts-ignore
+                  // @ts-expect-error: react-katex does not have type definitions
                   math: ({ value }) => <div className="overflow-x-auto my-4 flex justify-center"><BlockMath math={value} /></div>,
-                  // @ts-ignore
+                  // @ts-expect-error: react-katex does not have type definitions
                   inlineMath: ({ value }) => <InlineMath math={value} />,
-                  code: ({ node, className, children, ...props }) => {
+                  code: ({ className, children, ...props }) => {
                     // Fallback for code blocks that might be misinterpreted or handled standardly
-                    const match = /language-(\w+)/.exec(className || '')
                     return <code className={className} {...props}>{children}</code>
                   }
                 }}
