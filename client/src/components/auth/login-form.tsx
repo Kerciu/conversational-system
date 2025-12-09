@@ -62,16 +62,7 @@ export function LoginForm() {
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true)
     try {
-      // In production, this would redirect to the backend OAuth URL:
-      // window.location.href = authApi.getGoogleAuthUrl()
-      // For demo purposes, simulate successful OAuth login
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      login("demo-google-oauth-token")
-      toast({
-        title: "Welcome!",
-        description: "Successfully signed in with Google",
-      })
-      router.push("/chat")
+      window.location.href = authApi.getGoogleAuthUrl()
     } catch (error) {
       console.log(error)
       toast({
@@ -79,7 +70,6 @@ export function LoginForm() {
         description: "Could not sign in with Google",
         variant: "destructive",
       })
-    } finally {
       setIsGoogleLoading(false)
     }
   }
@@ -87,16 +77,7 @@ export function LoginForm() {
   const handleGithubLogin = async () => {
     setIsGithubLoading(true)
     try {
-      // In production, this would redirect to the backend OAuth URL:
-      // window.location.href = authApi.getGithubAuthUrl()
-      // For demo purposes, simulate successful OAuth login
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      login("demo-github-oauth-token")
-      toast({
-        title: "Welcome!",
-        description: "Successfully signed in with GitHub",
-      })
-      router.push("/chat")
+      window.location.href = authApi.getGithubAuthUrl()
     } catch (error) {
       console.log(error)
       toast({
@@ -104,7 +85,6 @@ export function LoginForm() {
         description: "Could not sign in with GitHub",
         variant: "destructive",
       })
-    } finally {
       setIsGithubLoading(false)
     }
   }
