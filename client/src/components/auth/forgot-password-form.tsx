@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Loader2, Mail, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,7 +12,6 @@ import { useToast } from "@/hooks/use-toast"
 import { authApi } from "@/lib/auth-api"
 
 export function ForgotPasswordForm() {
-  const router = useRouter()
   const { toast } = useToast()
 
   const [email, setEmail] = useState("")

@@ -117,11 +117,11 @@ public class AuthenticationController {
             authenticationService.resetPassword(request.getResetCode(), request.getNewPassword());
             return ResponseEntity.status(HttpStatus.OK).body("Password has been reset successfully");
         } catch (RuntimeException e) {
-            // Handle specific errors with appropriate status codes
             String errorMessage = e.getMessage();
             if (errorMessage.contains("Invalid") || errorMessage.contains("not found")) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMessage);
             }
+
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Failed to reset password: " + errorMessage);
         } catch (Exception e) {
