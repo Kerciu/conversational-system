@@ -1,12 +1,16 @@
 package com.conversational.system.application.entities.user;
 
 import java.time.LocalDateTime;
+import java.util.List;
+
+import com.conversational.system.application.entities.conversation.Conversation;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,7 +29,7 @@ public class User {
 
     @Column(name = "email", unique = true, nullable = false)
     private String email;
-    
+
     @Column(name = "username", unique = true, nullable = false)
     private String username;
 
@@ -43,7 +47,10 @@ public class User {
         this.username = username;
         this.passwordHash = passwordHash;
         this.creationDate = LocalDateTime.now();
-        this.isVerified = false; 
+        this.isVerified = false;
     }
 
+    // one user can have many conversations
+    @OneToMany(mappedBy = "user")
+    private List<Conversation> conversations;
 }
