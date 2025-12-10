@@ -1,12 +1,16 @@
 package com.conversational.system.application.entities.conversation;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.conversational.system.application.entities.message.Message;
 import com.conversational.system.application.entities.user.User;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,6 +18,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -36,9 +41,6 @@ public class Conversation {
     @JoinColumn(name = "user_id", insertable = false, updatable = false)
     private User user;
 
-    @Column(name = "user_id", nullable = false)
-    private Integer userId;
-
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -47,8 +49,11 @@ public class Conversation {
     @Column(name = "updated_at", insertable = false)
     private LocalDateTime updatedAt;
 
-    public Conversation(String title, Integer userId) {
+    public Conversation(String title, User user) {
         this.title = title;
-        this.userId = userId;
+        this.user = user;
     }
+
+    @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Message> messages = new ArrayList<>();
 }
