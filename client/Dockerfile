@@ -16,7 +16,7 @@ WORKDIR /app
 
 ENV NODE_ENV production
 
-COPY --from=builder /client/public ./public
+RUN mkdir -p ./public
 COPY --from=builder /client/.next/standalone ./
 COPY --from=builder /client/.next/static ./.next/static
 

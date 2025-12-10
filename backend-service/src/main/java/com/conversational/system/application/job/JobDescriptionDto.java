@@ -9,5 +9,6 @@ import lombok.Setter;
 @NoArgsConstructor
 public class JobDescriptionDto {
     String jobId;
-    String jobDescription;
+    String agentType;
+    String prompt;
 }
