@@ -7,6 +7,7 @@ import java.util.List;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.conversational.system.application.entities.math_model.MathModel;
 import com.conversational.system.application.entities.message.Message;
 import com.conversational.system.application.entities.user.User;
 
@@ -56,4 +57,7 @@ public class Conversation {
 
     @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Message> messages = new ArrayList<>();
+
+    @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MathModel> math_models = new ArrayList<>();
 }
