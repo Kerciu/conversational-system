@@ -1,10 +1,10 @@
 package com.conversational.system.application.config;
+
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -24,8 +24,6 @@ import com.conversational.system.application.authentication.json_web_token.JwtFi
 
 import lombok.RequiredArgsConstructor;
 
-
-
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -40,7 +38,7 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean 
+    @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();
     }
@@ -57,31 +55,30 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-    
+
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests((request) -> request
-                    .requestMatchers(
-                        "/api/auth/register", 
-                        "/api/auth/login",
-                        "/api/auth/oauth2/success", 
-                        "/oauth2/**",               
-                        "/login/**",
-                        "/api/auth/**"                 
-                        )
+                        .requestMatchers(
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/api/auth/oauth2/success",
+                                "/oauth2/**",
+                                "/login/**",
+                                "/api/auth/**")
                         .permitAll()
-                    .anyRequest().authenticated())
+                        .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())
                 .addFilterBefore(this.jwtFilter, BasicAuthenticationFilter.class)
                 .oauth2Login(oauth2 -> oauth2.defaultSuccessUrl("/api/auth/oauth2/success", true))
                 .build();
     }
 
-    @Bean 
+    @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
