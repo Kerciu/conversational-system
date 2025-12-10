@@ -62,22 +62,17 @@ export const authApi = {
   },
 
   requestPasswordReset: async (email: string): Promise<string> => {
-    const response = await fetch(`${API_BASE}/reset-password-request?email=${encodeURIComponent(email)}`, {
+    const response = await fetch(`${API_BASE}/reset-password-request`, {
       method: "POST",
-    })
-    return handleResponse(response)
-  },
-
-  resendPasswordReset: async (email: string): Promise<string> => {
-    const response = await fetch(`${API_BASE}/resend-password-reset?email=${encodeURIComponent(email)}`, {
-      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
     })
     return handleResponse(response)
   },
 
   resetPassword: async (data: ResetPasswordData): Promise<string> => {
     const response = await fetch(`${API_BASE}/reset-password`, {
-      method: "PUT",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     })

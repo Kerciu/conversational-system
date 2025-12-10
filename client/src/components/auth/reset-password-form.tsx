@@ -5,7 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { Eye, EyeOff, Loader2, KeyRound, Lock, ArrowLeft, CheckCircle2 } from "lucide-react"
+import { Eye, EyeOff, Loader2, Lock, ArrowLeft, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,27 +16,25 @@ import { PasswordStrengthIndicator, isPasswordStrong } from "./password-strength
 export function ResetPasswordForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const email = searchParams.get("email") || ""
+  const token = searchParams.get("token") || ""
   const { toast } = useToast()
 
   const [formData, setFormData] = useState({
-    resetCode: "",
     newPassword: "",
     confirmPassword: "",
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [isResending, setIsResending] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.resetCode.trim()) {
+    if (!token) {
       toast({
-        title: "Validation Error",
-        description: "Please enter the reset code",
+        title: "Invalid Link",
+        description: "This password reset link is invalid. Please request a new one.",
         variant: "destructive",
       })
       return
@@ -63,7 +61,7 @@ export function ResetPasswordForm() {
     setIsLoading(true)
     try {
       await authApi.resetPassword({
-        resetCode: formData.resetCode,
+        resetCode: token,
         newPassword: formData.newPassword,
       })
       setIsSuccess(true)
@@ -79,34 +77,6 @@ export function ResetPasswordForm() {
       })
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const handleResend = async () => {
-    if (!email) {
-      toast({
-        title: "Email Required",
-        description: "Please go back and request a new reset code",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsResending(true)
-    try {
-      await authApi.resendPasswordReset(email)
-      toast({
-        title: "Code Sent",
-        description: "A new reset code has been sent to your email",
-      })
-    } catch (error) {
-      toast({
-        title: "Resend Failed",
-        description: error instanceof Error ? error.message : "An error occurred",
-        variant: "destructive",
-      })
-    } finally {
-      setIsResending(false)
     }
   }
 
@@ -137,26 +107,18 @@ export function ResetPasswordForm() {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Reset code field */}
-        <div className="space-y-2">
-          <Label htmlFor="code" className="text-sm text-foreground">
-            Reset Code
-          </Label>
-          <div className="relative input-glow rounded-lg">
-            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="code"
-              type="text"
-              placeholder="Enter reset code from email"
-              value={formData.resetCode}
-              onChange={(e) => setFormData((prev) => ({ ...prev, resetCode: e.target.value }))}
-              className="pl-10 bg-input border-border focus:border-primary transition-colors tracking-widest text-center font-mono"
-              disabled={isLoading}
-            />
+      {!token && (
+        <div className="flex items-start gap-3 p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+          <div className="text-sm">
+            <p className="text-foreground font-medium">Invalid Reset Link</p>
+            <p className="text-muted-foreground mt-1">
+              This password reset link is invalid or has expired. Please request a new one.
+            </p>
           </div>
         </div>
+      )}
 
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* New Password field */}
         <div className="space-y-2">
           <Label htmlFor="newPassword" className="text-sm text-foreground">
@@ -171,7 +133,7 @@ export function ResetPasswordForm() {
               value={formData.newPassword}
               onChange={(e) => setFormData((prev) => ({ ...prev, newPassword: e.target.value }))}
               className="pl-10 pr-10 bg-input border-border focus:border-primary transition-colors"
-              disabled={isLoading}
+              disabled={isLoading || !token}
             />
             <button
               type="button"
@@ -198,7 +160,7 @@ export function ResetPasswordForm() {
               value={formData.confirmPassword}
               onChange={(e) => setFormData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
               className="pl-10 pr-10 bg-input border-border focus:border-primary transition-colors"
-              disabled={isLoading}
+              disabled={isLoading || !token}
             />
             <button
               type="button"
@@ -217,7 +179,7 @@ export function ResetPasswordForm() {
         <Button
           type="submit"
           className="w-full glow-primary bg-primary hover:bg-primary/90 text-primary-foreground mt-2"
-          disabled={isLoading}
+          disabled={isLoading || !token}
         >
           {isLoading ? (
             <>
@@ -229,21 +191,6 @@ export function ResetPasswordForm() {
           )}
         </Button>
       </form>
-
-      {/* Resend link */}
-      <div className="text-center">
-        <p className="text-sm text-muted-foreground">
-          Didn&apos;t receive the code?{" "}
-          <button
-            type="button"
-            onClick={handleResend}
-            disabled={isResending || !email}
-            className="text-primary hover:text-primary/80 font-medium transition-colors disabled:opacity-50"
-          >
-            {isResending ? "Sending..." : "Resend code"}
-          </button>
-        </p>
-      </div>
 
       {/* Back to login */}
       <p className="text-center text-sm text-muted-foreground">
