@@ -79,11 +79,9 @@ export function RegisterForm() {
       })
       toast({
         title: "Registration Successful",
-        // description: "Please check your email to verify your account",
-        description: "Welcome! You can now login.",
+        description: "Please check your email for a verification code",
       })
-      // router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`)
-      router.push("/auth/login")
+      router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`)
 
     } catch (error) {
       toast({
