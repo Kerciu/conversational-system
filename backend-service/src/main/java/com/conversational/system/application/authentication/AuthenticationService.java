@@ -94,6 +94,7 @@ public class AuthenticationService {
                     verifyEmailUnique(email);
                     verifyUsernameUnique(username);
                     User newUser = new User(email, username, null);
+                    newUser.setVerified(true); // OAuth users are pre-verified by the provider
                     return userRepository.save(newUser);
                 });
     }
@@ -168,5 +169,10 @@ public class AuthenticationService {
         if (user_opt.isEmpty())
             throw new RuntimeException("Authenticated user not found (username: " + username + ").\n");
         return user_opt.get();
-    }
-}
+    }}
+
+    
+            
+    
+
+    
