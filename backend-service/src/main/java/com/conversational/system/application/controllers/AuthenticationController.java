@@ -16,6 +16,7 @@ import com.conversational.system.application.authentication.AuthenticationServic
 import com.conversational.system.application.controllers.requests.LoginRequest;
 import com.conversational.system.application.controllers.requests.RegisterRequest;
 import com.conversational.system.application.controllers.requests.ResetPasswordRequest;
+import com.conversational.system.application.controllers.requests.VerifyAccountRequest;
 
 import lombok.RequiredArgsConstructor;
 
@@ -57,24 +58,36 @@ public class AuthenticationController {
         }
     }
 
-    @PostMapping("/veirfy-account")
-    public ResponseEntity<String> verifyAccount(@RequestBody String verificationCode) {
+    @PostMapping("/verify-account")
+    public ResponseEntity<String> verifyAccount(@RequestBody VerifyAccountRequest request) {
         try {
-            authenticationService.verifyAccount(verificationCode);
+            authenticationService.verifyAccount(request.getVerificationCode());
             return ResponseEntity.status(HttpStatus.OK).body("Account has been verified successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Exception occured during email verification process.\n" + e.getMessage());
         }
-        catch(Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Exception occured during email verification process.\n" +e.getMessage());
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<String> resendVerification(@RequestBody String email) {
+        try {
+            authenticationService.resendVerificationEmail(email);
+            return ResponseEntity.status(HttpStatus.OK).body("Verification code has been resent successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Exception occured during resending verification code.\n" + e.getMessage());
         }
     }
 
     @PostMapping("/reset-password-request")
     public ResponseEntity<String> resetPasswordRequest(@RequestBody String email) {
-        try{
+        try {
             authenticationService.resetPasswordRequest(email);
             return ResponseEntity.status(HttpStatus.OK).body("Password reset email sent successfully");
-        } catch(Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Exception occured during password reset process.\n" +e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Exception occured during password reset process.\n" + e.getMessage());
         }
     }
 
@@ -83,9 +96,9 @@ public class AuthenticationController {
         try {
             authenticationService.resetPassword(request.getResetCode(), request.getNewPassword());
             return ResponseEntity.status(HttpStatus.OK).body("Password has been reset successfully");
-        }
-        catch(Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Exception occured during password reset process.\n" + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Exception occured during password reset process.\n" + e.getMessage());
         }
     }
 }
