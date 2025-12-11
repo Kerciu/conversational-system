@@ -5,10 +5,12 @@ import java.util.concurrent.TimeUnit;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import com.google.api.client.util.Value;
+import org.springframework.beans.factory.annotation.Value;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CodeCacheService {
@@ -58,9 +60,14 @@ public class CodeCacheService {
     // PRIVATE HELPER METHODS
     private void saveCode(String prefix, String code, Integer userId, long ttlMinutes) {
         try {
+            if (ttlMinutes <= 0) {
+                ttlMinutes = 15;
+                log.warn("TTL must be greater than 0. Using default value {}.", ttlMinutes);
+            }
             String key = prefix + code;
             redisTemplate.opsForValue().set(key, userId, ttlMinutes, TimeUnit.MINUTES);
         } catch (Exception e) {
+            log.error("Error while saving code.", e);
             throw new RuntimeException("Error while saving code.", e);
         }
     }
@@ -71,6 +78,7 @@ public class CodeCacheService {
             Object value = redisTemplate.opsForValue().get(key);
             return value != null ? ((Number) value).intValue() : null;
         } catch (Exception e) {
+            log.error("Error while getting user id by code.", e);
             throw new RuntimeException("Error while getting user id by code.", e);
         }
     }
@@ -80,6 +88,7 @@ public class CodeCacheService {
             String key = prefix + code;
             return Boolean.TRUE.equals(redisTemplate.delete(key));
         } catch (Exception e) {
+            log.error("Error while deleting code.", e);
             throw new RuntimeException("Error while deleting code.", e);
         }
     }
@@ -89,6 +98,7 @@ public class CodeCacheService {
             String key = prefix + code;
             return Boolean.TRUE.equals(redisTemplate.hasKey(key));
         } catch (Exception e) {
+            log.error("Error while checking if code exists.", e);
             throw new RuntimeException("Error while checking if code exists.", e);
         }
     }

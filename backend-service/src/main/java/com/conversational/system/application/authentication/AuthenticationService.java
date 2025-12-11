@@ -1,4 +1,5 @@
 package com.conversational.system.application.authentication;
+
 import java.util.Optional;
 
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class AuthenticationService { 
+public class AuthenticationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -30,8 +31,6 @@ public class AuthenticationService {
     private final OAuth2Service oauth2Service;
     private final EmailSender emailSender;
     private final CodeCacheService codeCacheService;
-
-
 
     public void registerUser(String username, String email, String password) {
         verifyEmail(email);
@@ -42,49 +41,50 @@ public class AuthenticationService {
         sendVerificationEmail(newUser);
     }
 
-    public void  resetPasswordRequest(String email) {
+    public void resetPasswordRequest(String email) {
         Optional<User> userOptional = userRepository.findByEmail(email);
-        if (userOptional.isEmpty()) throw new RuntimeException("No user found with email: " + email);
+        if (userOptional.isEmpty())
+            throw new RuntimeException("No user found with email: " + email);
         User user = userOptional.get();
         sendPasswordResetEmail(user);
     }
 
     public String loginUser(String username, String password) {
-        if (username == null || username.isBlank()) throw new IllegalArgumentException("Username cannot be blank.");
-        if (password == null || password.isBlank()) throw new IllegalArgumentException("Password cannot be blank.");
+        if (username == null || username.isBlank())
+            throw new IllegalArgumentException("Username cannot be blank.");
+        if (password == null || password.isBlank())
+            throw new IllegalArgumentException("Password cannot be blank.");
         try {
-            Authentication authentication = UsernamePasswordAuthenticationToken.unauthenticated(username, password );
+            Authentication authentication = UsernamePasswordAuthenticationToken.unauthenticated(username, password);
             authentication = authenticationManager.authenticate(authentication);
             return jwtService.generateJWToken(username);
-        }
-        catch (DisabledException  e) {
-            throw new RuntimeException("Account is not verified for user " + username + ".\nPlease verify your email before logging in.");
-        }
-        catch (AuthenticationException  e) {
+        } catch (DisabledException e) {
+            throw new RuntimeException(
+                    "Account is not verified for user " + username + ".\nPlease verify your email before logging in.");
+        } catch (AuthenticationException e) {
             throw new RuntimeException("Authentication failed for user " + username + ".\n" + e.getMessage());
         }
     }
-    
-    public String authenticateOAuth2User(Authentication authentication){
-        if (!(authentication instanceof OAuth2AuthenticationToken oAuth2Token)) 
-                throw new RuntimeException("Expected OAuth2AuthenticationToken but received: " + authentication.getClass().getSimpleName());
 
-            try {
-                OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
-                String provider = oAuth2Token.getAuthorizedClientRegistrationId(); // "google" or "github"
+    public String authenticateOAuth2User(Authentication authentication) {
+        if (!(authentication instanceof OAuth2AuthenticationToken oAuth2Token))
+            throw new RuntimeException(
+                    "Expected OAuth2AuthenticationToken but received: " + authentication.getClass().getSimpleName());
 
-                String email = oauth2Service.extractEmail(oAuth2User, provider, oAuth2Token.getName());
-                String username = oauth2Service.extractUsername(oAuth2User, provider);     
-                
-                User user = findOrCreateOauthUser(email, username);
-                return jwtService.generateJWToken(user.getUsername());
-            }
-            catch (OAuth2AuthenticationException e) {
-                throw e;
-            }
-            catch (Exception e) {
-                throw new RuntimeException("Exception occured during OAuth2 authentication process.\n" +e.getMessage());
-            }
+        try {
+            OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+            String provider = oAuth2Token.getAuthorizedClientRegistrationId(); // "google" or "github"
+
+            String email = oauth2Service.extractEmail(oAuth2User, provider, oAuth2Token.getName());
+            String username = oauth2Service.extractUsername(oAuth2User, provider);
+
+            User user = findOrCreateOauthUser(email, username);
+            return jwtService.generateJWToken(user.getUsername());
+        } catch (OAuth2AuthenticationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Exception occured during OAuth2 authentication process.\n" + e.getMessage());
+        }
     }
 
     private User findOrCreateOauthUser(String email, String username) {
@@ -94,25 +94,29 @@ public class AuthenticationService {
                     verifyEmailUnique(email);
                     verifyUsernameUnique(username);
                     User newUser = new User(email, username, null);
+                    newUser.setVerified(true); // OAuth users are pre-verified by the provider
                     return userRepository.save(newUser);
                 });
     }
-    
+
     public void verifyEmail(String email) {
         String emailRegex = "^(?=.{1,64}@)[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$";
-        if(email == null || !email.matches(emailRegex)) throw new RuntimeException("Provided email address ("+email+") is incorrect.");
+        if (email == null || !email.matches(emailRegex))
+            throw new RuntimeException("Provided email address (" + email + ") is incorrect.");
     }
 
     public void verifyEmailUnique(String email) {
         Optional<User> userOptionalEmail = userRepository.findByEmail(email);
-        if (userOptionalEmail.isPresent()) throw new RuntimeException("Email " + email + " already taken.");
+        if (userOptionalEmail.isPresent())
+            throw new RuntimeException("Email " + email + " already taken.");
     }
 
     public void verifyUsernameUnique(String username) {
         Optional<User> userOptionalUsername = userRepository.findByUsername(username);
-        if (userOptionalUsername.isPresent()) throw new RuntimeException("Username " + username + " already taken.");
+        if (userOptionalUsername.isPresent())
+            throw new RuntimeException("Username " + username + " already taken.");
     }
-    
+
     private void sendVerificationEmail(User user) {
         String verificationCode = CodeGenerator.generate();
         codeCacheService.saveVerificationCode(verificationCode, user.getId());
@@ -127,30 +131,48 @@ public class AuthenticationService {
 
     public void resetPassword(String code, String newPassword) {
         Integer userId = codeCacheService.getUserIdByPasswordResetCode(code);
-        if (userId == null) throw new RuntimeException("Invalid password reset code: " + code);
-        
+        if (userId == null)
+            throw new RuntimeException("Invalid password reset code: " + code);
+
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);
-        
+
         codeCacheService.deletePasswordResetCode(code);
     }
 
     public void verifyAccount(String verificationCode) {
         Integer userId = codeCacheService.getUserIdByVerificationCode(verificationCode);
-        if (userId == null) throw new RuntimeException("Invalid verification code: " + verificationCode);
-        
+        if (userId == null)
+            throw new RuntimeException("Invalid verification code: " + verificationCode);
+
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         user.setVerified(true);
         userRepository.save(user);
-        
+
         codeCacheService.deleteVerificationCode(verificationCode);
     }
 
-    public User extractUser(Authentication authentication){
+    public void resendVerificationEmail(String email) {
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isEmpty())
+            throw new RuntimeException("No user found with email: " + email);
+        User user = userOptional.get();
+        if (user.isVerified())
+            throw new RuntimeException("Account is already verified");
+        sendVerificationEmail(user);
+    }
+
+    public User extractUser(Authentication authentication) {
         String username = authentication.getName();
         Optional<User> user_opt = userRepository.findByUsername(username);
-        if (user_opt.isEmpty()) throw new RuntimeException("Authenticated user not found (username: "+ username+").\n");
+        if (user_opt.isEmpty())
+            throw new RuntimeException("Authenticated user not found (username: " + username + ").\n");
         return user_opt.get();
-    }
-}
+    }}
+
+    
+            
+    
+
+    

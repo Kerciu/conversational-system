@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Loader2, Mail, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,7 +12,6 @@ import { useToast } from "@/hooks/use-toast"
 import { authApi } from "@/lib/auth-api"
 
 export function ForgotPasswordForm() {
-  const router = useRouter()
   const { toast } = useToast()
 
   const [email, setEmail] = useState("")
@@ -64,10 +62,6 @@ export function ForgotPasswordForm() {
     }
   }
 
-  const handleContinue = () => {
-    router.push(`/auth/reset-password?email=${encodeURIComponent(email)}`)
-  }
-
   if (emailSent) {
     return (
       <div className="space-y-6">
@@ -77,18 +71,14 @@ export function ForgotPasswordForm() {
           <div className="text-sm">
             <p className="text-foreground font-medium">Check your inbox</p>
             <p className="text-muted-foreground mt-1">
-              We&apos;ve sent password reset instructions to{" "}
+              We&apos;ve sent a password reset link to{" "}
               <span className="text-foreground font-medium">{email}</span>
+            </p>
+            <p className="text-muted-foreground mt-2">
+              Click the link in the email to reset your password.
             </p>
           </div>
         </div>
-
-        <Button
-          onClick={handleContinue}
-          className="w-full glow-primary bg-primary hover:bg-primary/90 text-primary-foreground"
-        >
-          Continue to Reset Password
-        </Button>
 
         <p className="text-center text-sm text-muted-foreground">
           <Link href="/auth/login" className="text-primary hover:text-primary/80 transition-colors">

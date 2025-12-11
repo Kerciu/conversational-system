@@ -43,41 +43,36 @@ export const authApi = {
     return handleResponse(response)
   },
 
-  // THIS WILL BE IMPLEMENTED ALONGSIDE ACCOUNT VERIFICATION ON A SEPARATE BRANCH
-  // verifyAccount: async (verificationCode: string): Promise<string> => {
-  //   const response = await fetch(
-  //     `${API_BASE}/verify-account?verificationCode=${encodeURIComponent(verificationCode)}`,
-  //     {
-  //       method: "POST",
-  //     },
-  //   )
-  //   return handleResponse(response)
-  // },
+  verifyAccount: async (verificationCode: string): Promise<string> => {
+    const response = await fetch(`${API_BASE}/verify-account`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ verificationCode }),
+    })
+    return handleResponse(response)
+  },
 
   resendVerification: async (email: string): Promise<string> => {
-    const response = await fetch(`${API_BASE}/resend-verification?email=${encodeURIComponent(email)}`, {
+    const response = await fetch(`${API_BASE}/resend-verification`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(email),
     })
     return handleResponse(response)
   },
 
   requestPasswordReset: async (email: string): Promise<string> => {
-    const response = await fetch(`${API_BASE}/reset-password-request?email=${encodeURIComponent(email)}`, {
+    const response = await fetch(`${API_BASE}/reset-password-request`, {
       method: "POST",
-    })
-    return handleResponse(response)
-  },
-
-  resendPasswordReset: async (email: string): Promise<string> => {
-    const response = await fetch(`${API_BASE}/resend-password-reset?email=${encodeURIComponent(email)}`, {
-      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
     })
     return handleResponse(response)
   },
 
   resetPassword: async (data: ResetPasswordData): Promise<string> => {
     const response = await fetch(`${API_BASE}/reset-password`, {
-      method: "PUT",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     })
