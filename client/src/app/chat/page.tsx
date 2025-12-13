@@ -45,11 +45,55 @@ export default function ChatPage() {
 
     loadConversations()
   }, [toast])
-  const handleNewConversation = useCallback(() => {
-    // request backend to create a new conversation
-    // and wait for its ID
-    setActiveConversationId(null)
-  }, [])
+
+  const handleNewConversation = useCallback(async () => {
+    const API_BASE = "http://localhost:8080/api/dashboard";
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(`${API_BASE}/new-conversation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create conversation: ${response.status}`);
+      }
+
+      const newConversationId: number = await response.json();
+      const newIdString = newConversationId.toString();
+
+      const newConv: Conversation = {
+        id: newIdString,
+        title: "New Conversation",
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      console.log("New conversation created:", newConv);
+      setConversations((prev) => [newConv, ...prev]);
+      setActiveConversationId(newIdString);
+      toast({
+        title: "New chat created",
+        description: "You can now start messaging.",
+      });
+
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create new conversation.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
 
   const handleSelectConversation = useCallback((id: string) => {
     // request backend to get the conversation
