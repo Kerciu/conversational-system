@@ -7,9 +7,6 @@ interface ConversationPreview {
     updatedAt: Date
 }
 
-interface CreateConversationResponse {
-    conversationId: number
-}
 
 interface ConversationHistoryItem {
     id?: number
