@@ -3,13 +3,13 @@
 import { useEffect, useState, useCallback } from "react"
 import { ChatSidebar } from "@/components/chat/chat-sidebar"
 import { ChatArea } from "@/components/chat/chat-area"
-import { fetchConversationPreviews } from "@/src/lib/previous-conversations"
 import { generateId } from "@/lib/chat-utils"
-import type { Conversation, Message, ConversationPreview } from "@/types/chat"
+import type { Conversation, Message } from "@/types/chat"
 import { useToast } from "@/components/ui/use-toast"
 import { AmbientOrbs } from "@/components/ui/ambient-orbs"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { chatApi } from "@/lib/chat-api"
+import { conversationApi } from "@/lib/conversation-api"
 
 export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -24,7 +24,7 @@ export default function ChatPage() {
   useEffect(() => {
     const loadConversations = async () => {
       try {
-        const previews: ConversationPreview[] = await fetchConversationPreviews()
+        const previews = await conversationApi.fetchPreviews()
 
         const fullConversations: Conversation[] = previews.map((preview) => ({
           ...preview,
@@ -47,26 +47,8 @@ export default function ChatPage() {
   }, [toast])
 
   const handleNewConversation = useCallback(async () => {
-    const API_BASE = "http://localhost:8080/api/dashboard";
-
     try {
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(`${API_BASE}/new-conversation`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to create conversation: ${response.status}`);
-      }
-
-      const newConversationId: number = await response.json();
-      const newIdString = newConversationId.toString();
+      const newIdString = await conversationApi.create()
 
       const newConv: Conversation = {
         id: newIdString,
@@ -74,61 +56,100 @@ export default function ChatPage() {
         messages: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-      };
+      }
 
-      console.log("New conversation created:", newConv);
-      setConversations((prev) => [newConv, ...prev]);
-      setActiveConversationId(newIdString);
+      setConversations((prev) => [newConv, ...prev])
+      setActiveConversationId(newIdString)
       toast({
         title: "New chat created",
         description: "You can now start messaging.",
-      });
-
+      })
     } catch (error) {
-      console.error("Error creating conversation:", error);
+      console.error("Error creating conversation:", error)
       toast({
         title: "Error",
         description: "Failed to create new conversation.",
         variant: "destructive",
-      });
+      })
     }
-  }, [toast]);
+  }, [toast])
 
+  const handleSelectConversation = useCallback(
+    async (id: string) => {
+      setActiveConversationId(id)
 
-  const handleSelectConversation = useCallback((id: string) => {
-    // request backend to get the conversation
-    // and wait for its messages and conversation ID
-    setActiveConversationId(id)
-  }, [])
+      const existingConv = conversations.find((c) => c.id === id)
+      if (existingConv && existingConv.messages.length > 0) {
+        return
+      }
+
+      try {
+        const messages = await conversationApi.getHistory(id)
+
+        setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, messages } : c)))
+      } catch (error) {
+        console.error("Error loading conversation history:", error)
+        toast({
+          title: "Error loading chat",
+          description: "Could not restore previous messages.",
+          variant: "destructive",
+        })
+      }
+    },
+    [conversations, toast]
+  )
 
   const handleDeleteConversation = useCallback(
-    // TODO: DELETE CONVERSATION FROM BACKEND
-    (id: string) => {
-      setConversations((prev) => prev.filter((c) => c.id !== id))
-      if (activeConversationId === id) {
-        setActiveConversationId(null)
+    async (id: string) => {
+      try {
+        await conversationApi.delete(id)
+
+        setConversations((prev) => prev.filter((c) => c.id !== id))
+        if (activeConversationId === id) {
+          setActiveConversationId(null)
+        }
+        toast({
+          title: "Conversation deleted",
+          description: "The conversation has been removed.",
+        })
+      } catch (error) {
+        console.error("Error deleting conversation:", error)
+        toast({
+          title: "Error",
+          description: "Failed to delete conversation.",
+          variant: "destructive",
+        })
       }
-      toast({
-        title: "Conversation deleted",
-        description: "The conversation has been removed.",
-      })
     },
-    [activeConversationId, toast],
+    [activeConversationId, toast]
   )
 
   const handleRenameConversation = useCallback(
-    // TODO: RENAME CONVERSATION ON BACKEND
-    (id: string, newTitle: string) => {
-      setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: newTitle } : c)))
-      toast({
-        title: "Conversation renamed",
-        description: `Renamed to "${newTitle}"`,
-      })
+    async (id: string, newTitle: string) => {
+      try {
+        await conversationApi.rename(id, newTitle)
+
+        setConversations((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, title: newTitle } : c))
+        )
+        toast({
+          title: "Conversation renamed",
+          description: `Renamed to "${newTitle}"`,
+        })
+      } catch (error) {
+        console.error("Error renaming conversation:", error)
+        toast({
+          title: "Error",
+          description: "Failed to rename conversation.",
+          variant: "destructive",
+        })
+      }
     },
-    [toast],
+    [toast]
   )
 
   const handleSendMessage = useCallback(
+    // TODO: UPDATE SENDING MESSAGE LOGIC
     async (content: string) => {
       const userMessage: Message = {
         id: generateId(),
@@ -151,22 +172,23 @@ export default function ChatPage() {
         setConversations((prev) => [newConv, ...prev])
         setActiveConversationId(newConv.id)
         currentConvId = newConv.id
-      } else {
+      }
+
+      else {
         setConversations((prev) =>
           prev.map((c) =>
-            c.id === currentConvId ? { ...c, messages: [...c.messages, userMessage], updatedAt: new Date() } : c,
-          ),
+            c.id === currentConvId
+              ? { ...c, messages: [...c.messages, userMessage], updatedAt: new Date() }
+              : c
+          )
         )
       }
 
       setIsLoading(true)
 
       try {
-        // Generate unique job ID
-        // TODO: GENERATE JOB ID ON BACKEND
         const jobId = `job-${generateId()}`
 
-        // Build full conversation history for context
         const currentConv = conversations.find((c) => c.id === currentConvId)
         const conversationHistory = currentConv
           ? currentConv.messages
@@ -175,12 +197,10 @@ export default function ChatPage() {
             .join("\n\n=== NEXT USER MESSAGE ===\n\n")
           : ""
 
-        // Always send full history + new message
         const fullPrompt = conversationHistory
           ? `${conversationHistory}\n\n=== NEXT USER MESSAGE ===\n\n${content}`
           : content
 
-        // Submit job to backend with full conversation context
         const submitResponse = await chatApi.submitJob({
           jobId,
           agentType: "MODELER_AGENT",
@@ -191,27 +211,25 @@ export default function ChatPage() {
           throw new Error(submitResponse.message || "Failed to submit job")
         }
 
-        // Poll for job status every 1 second
         const result = await chatApi.pollJobStatus(jobId, (status) => {
           console.log(`Job ${jobId} status:`, status.status)
         })
 
-        // Create AI message with the result
         const aiMessage: Message = {
           id: generateId(),
           role: "assistant",
           content: result.answer || "Job completed but no answer received.",
           timestamp: new Date(),
           type: "model",
-          actions: [
-            { label: "Accept model and generate code", variant: "primary" },
-          ],
+          actions: [{ label: "Accept model and generate code", variant: "primary" }],
         }
 
         setConversations((prev) =>
           prev.map((c) =>
-            c.id === currentConvId ? { ...c, messages: [...c.messages, aiMessage], updatedAt: new Date() } : c,
-          ),
+            c.id === currentConvId
+              ? { ...c, messages: [...c.messages, aiMessage], updatedAt: new Date() }
+              : c
+          )
         )
       } catch (error) {
         console.error("Error processing message:", error)
@@ -221,7 +239,6 @@ export default function ChatPage() {
           variant: "destructive",
         })
 
-        // Add error message to chat
         const errorMessage: Message = {
           id: generateId(),
           role: "assistant",
@@ -232,14 +249,16 @@ export default function ChatPage() {
 
         setConversations((prev) =>
           prev.map((c) =>
-            c.id === currentConvId ? { ...c, messages: [...c.messages, errorMessage], updatedAt: new Date() } : c,
-          ),
+            c.id === currentConvId
+              ? { ...c, messages: [...c.messages, errorMessage], updatedAt: new Date() }
+              : c
+          )
         )
       } finally {
         setIsLoading(false)
       }
     },
-    [activeConversationId, toast, conversations],
+    [activeConversationId, toast, conversations]
   )
 
   const handleAction = useCallback(
@@ -249,7 +268,7 @@ export default function ChatPage() {
         description: "This feature will be implemented in the next phase.",
       })
     },
-    [toast],
+    [toast]
   )
 
   return (

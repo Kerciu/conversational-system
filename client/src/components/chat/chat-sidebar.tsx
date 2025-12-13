@@ -61,8 +61,8 @@ export function ChatSidebar({
   const { logout } = useAuth()
   const router = useRouter()
 
-  const userInitials = (userName && userName !== "User") 
-    ? userName.slice(0, 2).toUpperCase() 
+  const userInitials = (userName && userName !== "User")
+    ? userName.slice(0, 2).toUpperCase()
     : "?";
   const filteredConversations = conversations.filter((conv) =>
     conv.title.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -87,18 +87,18 @@ export function ChatSidebar({
     logout()
     router.push("/auth/login")
   }
-  
+
   useEffect(() => {
     const fetchUserData = async () => {
-      const API_BASE = 'http://localhost:8080'
+      const API_BASE = 'http://localhost:8080/api/dashboard'
       try {
         const [emailRes, usernameRes] = await Promise.all([
-          fetch(`${API_BASE}/api/dashboard/get-email`, {
+          fetch(`${API_BASE}/get-email`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem("token")}`,
             }
           }),
-          fetch(`${API_BASE}/api/dashboard/get-username`, {
+          fetch(`${API_BASE}/get-username`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem("token")}`,
             }
