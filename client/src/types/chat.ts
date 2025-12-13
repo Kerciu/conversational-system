@@ -1,6 +1,6 @@
 export interface Message {
   id: string
-  role: "user" | "assistant"
+  role: "user" | "assistant" //TODO: CHANGE TO SENDER VALS
   content: string
   timestamp: Date
   type?: "text" | "code" | "model" | "action"
@@ -14,6 +14,19 @@ export interface Conversation {
   messages: Message[]
   createdAt: Date
   updatedAt: Date
+}
+
+export interface ConversationPreview {
+  // Used for previewing conversations in the sidebar
+  id: string;
+  title: string;
+  updatedAt: Date;
+}
+
+export interface ConversationDisplayResponse {
+  id: number;
+  title: string;
+  updatedAt: string;
 }
 
 export type ConversationGroup = "today" | "yesterday" | "last7days" | "last30days" | "older"

@@ -1,18 +1,18 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { ChatSidebar } from "@/components/chat/chat-sidebar"
 import { ChatArea } from "@/components/chat/chat-area"
-import { mockConversations } from "@/lib/mock-conversations"
+import { fetchConversationPreviews } from "@/src/lib/previous-conversations"
 import { generateId } from "@/lib/chat-utils"
-import type { Conversation, Message } from "@/types/chat"
+import type { Conversation, Message, ConversationPreview } from "@/types/chat"
 import { useToast } from "@/components/ui/use-toast"
 import { AmbientOrbs } from "@/components/ui/ambient-orbs"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { chatApi } from "@/lib/chat-api"
 
 export default function ChatPage() {
-  const [conversations, setConversations] = useState<Conversation[]>(mockConversations)
+  const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -21,15 +21,44 @@ export default function ChatPage() {
   const activeConversation = conversations.find((c) => c.id === activeConversationId)
   const messages = activeConversation?.messages || []
 
+  useEffect(() => {
+    const loadConversations = async () => {
+      try {
+        const previews: ConversationPreview[] = await fetchConversationPreviews()
+
+        const fullConversations: Conversation[] = previews.map((preview) => ({
+          ...preview,
+          messages: [],
+          createdAt: preview.updatedAt,
+        }))
+
+        setConversations(fullConversations)
+      } catch (error) {
+        console.error("Failed to load conversations:", error)
+        toast({
+          title: "Error",
+          description: "Could not load conversation history.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    loadConversations()
+  }, [toast])
   const handleNewConversation = useCallback(() => {
+    // request backend to create a new conversation
+    // and wait for its ID
     setActiveConversationId(null)
   }, [])
 
   const handleSelectConversation = useCallback((id: string) => {
+    // request backend to get the conversation
+    // and wait for its messages and conversation ID
     setActiveConversationId(id)
   }, [])
 
   const handleDeleteConversation = useCallback(
+    // TODO: DELETE CONVERSATION FROM BACKEND
     (id: string) => {
       setConversations((prev) => prev.filter((c) => c.id !== id))
       if (activeConversationId === id) {
@@ -44,6 +73,7 @@ export default function ChatPage() {
   )
 
   const handleRenameConversation = useCallback(
+    // TODO: RENAME CONVERSATION ON BACKEND
     (id: string, newTitle: string) => {
       setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: newTitle } : c)))
       toast({
@@ -89,6 +119,7 @@ export default function ChatPage() {
 
       try {
         // Generate unique job ID
+        // TODO: GENERATE JOB ID ON BACKEND
         const jobId = `job-${generateId()}`
 
         // Build full conversation history for context
