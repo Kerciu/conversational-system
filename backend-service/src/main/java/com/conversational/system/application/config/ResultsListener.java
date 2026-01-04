@@ -1,5 +1,6 @@
 package com.conversational.system.application.config;
 
+import com.conversational.system.application.conversation.ConversationService;
 import com.conversational.system.application.job.JobService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -15,6 +16,7 @@ public class ResultsListener {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final JobService jobService;
+    private final ConversationService conversationService;
 
     @RabbitListener(queues = "${app.queue.code.review}")
     public void receiveJobResults(Map<String, Object> resultMessage) {
@@ -42,6 +44,14 @@ public class ResultsListener {
         // Update job status in JobService
         if ("TASK_COMPLETED".equals(status)) {
             jobService.updateJobResult(jobId, "completed", answer);
+            
+            // Save assistant message to database
+            try {
+                conversationService.saveAssistantMessage(jobId, answer);
+                System.out.println("Assistant message saved for job: " + jobId);
+            } catch (Exception e) {
+                System.err.println("Failed to save assistant message: " + e.getMessage());
+            }
         } else {
             jobService.updateJobResult(jobId, "error", "Task failed: " + status);
         }
