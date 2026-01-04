@@ -1,14 +1,17 @@
 const API_BASE = "http://localhost:8080/api/test"
+const CONVERSATIONS_API = "http://localhost:8080/api/conversations"
 
 interface JobSubmitRequest {
   jobId: string
   agentType: string
   prompt: string
+  conversationId?: string
 }
 
 interface JobSubmitResponse {
   status: string
   jobId?: string
+  conversationId?: string
   message?: string
 }
 
@@ -16,6 +19,19 @@ interface JobStatusResponse {
   status: "pending" | "completed" | "error" | "not_found"
   answer?: string
   message?: string
+}
+
+interface ConversationRecord {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+}
+
+interface ConversationHistory {
+  conversationId: string
+  agentType: string
+  messages: Array<{ role: string; content: string }>
 }
 
 const getAuthHeaders = (): HeadersInit => {
@@ -78,6 +94,43 @@ export const chatApi = {
         }
       }, intervalMs)
     })
-  }
-}
+  },
 
+  // Conversation management
+  getConversations: async (): Promise<ConversationRecord[]> => {
+    const response = await fetch(CONVERSATIONS_API, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch conversations: ${response.statusText}`)
+    }
+    
+    return response.json()
+  },
+
+  getConversationHistory: async (conversationId: string, agentType: string): Promise<ConversationHistory> => {
+    const response = await fetch(`${CONVERSATIONS_API}/${conversationId}/history/${agentType}`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch conversation history: ${response.statusText}`)
+    }
+    
+    return response.json()
+  },
+
+  deleteConversation: async (conversationId: string): Promise<void> => {
+    const response = await fetch(`${CONVERSATIONS_API}/${conversationId}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Failed to delete conversation: ${response.statusText}`)
+    }
+  },
+}

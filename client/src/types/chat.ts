@@ -14,6 +14,7 @@ export interface Conversation {
   messages: Message[]
   createdAt: Date
   updatedAt: Date
+  conversationId?: string
 }
 
 export type ConversationGroup = "today" | "yesterday" | "last7days" | "last30days" | "older"

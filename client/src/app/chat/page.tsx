@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { ChatSidebar } from "@/components/chat/chat-sidebar"
 import { ChatArea } from "@/components/chat/chat-area"
-import { mockConversations } from "@/lib/mock-conversations"
 import { generateId } from "@/lib/chat-utils"
 import type { Conversation, Message } from "@/types/chat"
 import { useToast } from "@/components/ui/use-toast"
@@ -12,25 +11,104 @@ import { ProtectedRoute } from "@/components/auth/protected-route"
 import { chatApi } from "@/lib/chat-api"
 
 export default function ChatPage() {
-  const [conversations, setConversations] = useState<Conversation[]>(mockConversations)
+  const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isLoadingConversations, setIsLoadingConversations] = useState(true)
   const { toast } = useToast()
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId)
   const messages = activeConversation?.messages || []
 
+  // Load conversations from backend on mount
+  useEffect(() => {
+    const loadConversations = async () => {
+      try {
+        const backendConversations = await chatApi.getConversations()
+        const mappedConversations: Conversation[] = backendConversations.map(conv => ({
+          id: conv.id,
+          title: conv.title,
+          messages: [],
+          createdAt: new Date(conv.createdAt),
+          updatedAt: new Date(conv.updatedAt),
+          conversationId: conv.id, // Backend ID
+        }))
+        setConversations(mappedConversations)
+      } catch (error) {
+        console.error("Failed to load conversations:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load conversations",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoadingConversations(false)
+      }
+    }
+
+    loadConversations()
+  }, [toast])
+
+  // Load conversation history when selecting a conversation
+  const loadConversationHistory = async (conversationId: string) => {
+    try {
+      const history = await chatApi.getConversationHistory(conversationId, "MODELER_AGENT")
+      
+      const messages: Message[] = history.messages.map((msg, index) => ({
+        id: `${conversationId}-msg-${index}`,
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+        timestamp: new Date(),
+        type: msg.role === "user" ? "text" : "model",
+        ...(msg.role === "assistant" && {
+          actions: [{ label: "Accept model and generate code", variant: "primary" as const }],
+        }),
+      }))
+
+      setConversations(prev =>
+        prev.map(c =>
+          c.conversationId === conversationId
+            ? { ...c, messages }
+            : c
+        )
+      )
+    } catch (error) {
+      console.error("Failed to load conversation history:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load conversation history",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleNewConversation = useCallback(() => {
     setActiveConversationId(null)
   }, [])
 
-  const handleSelectConversation = useCallback((id: string) => {
+  const handleSelectConversation = useCallback(async (id: string) => {
     setActiveConversationId(id)
-  }, [])
+    const conversation = conversations.find(c => c.id === id)
+    
+    // Load history if not already loaded
+    if (conversation && conversation.messages.length === 0 && conversation.conversationId) {
+      await loadConversationHistory(conversation.conversationId)
+    }
+  }, [conversations])
 
   const handleDeleteConversation = useCallback(
-    (id: string) => {
+    async (id: string) => {
+      const conversation = conversations.find(c => c.id === id)
+      
+      if (conversation?.conversationId) {
+        try {
+          await chatApi.deleteConversation(conversation.conversationId)
+        } catch (error) {
+          console.error("Failed to delete conversation from backend:", error)
+        }
+      }
+
       setConversations((prev) => prev.filter((c) => c.id !== id))
       if (activeConversationId === id) {
         setActiveConversationId(null)
@@ -40,7 +118,7 @@ export default function ChatPage() {
         description: "The conversation has been removed.",
       })
     },
-    [activeConversationId, toast],
+    [activeConversationId, toast, conversations],
   )
 
   const handleRenameConversation = useCallback(
@@ -65,7 +143,9 @@ export default function ChatPage() {
       }
 
       let currentConvId = activeConversationId
+      let backendConversationId: string | undefined = activeConversation?.conversationId
 
+      // If no active conversation, create a new one (will be created on backend)
       if (!currentConvId) {
         const newConv: Conversation = {
           id: generateId(),
@@ -78,6 +158,7 @@ export default function ChatPage() {
         setActiveConversationId(newConv.id)
         currentConvId = newConv.id
       } else {
+        // Add user message to existing conversation
         setConversations((prev) =>
           prev.map((c) =>
             c.id === currentConvId ? { ...c, messages: [...c.messages, userMessage], updatedAt: new Date() } : c,
@@ -91,32 +172,29 @@ export default function ChatPage() {
         // Generate unique job ID
         const jobId = `job-${generateId()}`
 
-        // Build full conversation history for context
-        const currentConv = conversations.find((c) => c.id === currentConvId)
-        const conversationHistory = currentConv
-          ? currentConv.messages
-            .filter((msg) => msg.role === "user")
-            .map((msg) => msg.content)
-            .join("\n\n=== NEXT USER MESSAGE ===\n\n")
-          : ""
-
-        // Always send full history + new message
-        const fullPrompt = conversationHistory
-          ? `${conversationHistory}\n\n=== NEXT USER MESSAGE ===\n\n${content}`
-          : content
-
-        // Submit job to backend with full conversation context
+        // Submit job to backend with conversationId if available
         const submitResponse = await chatApi.submitJob({
           jobId,
           agentType: "MODELER_AGENT",
-          prompt: fullPrompt,
+          prompt: content,
+          conversationId: backendConversationId,
         })
 
         if (submitResponse.status !== "ok") {
           throw new Error(submitResponse.message || "Failed to submit job")
         }
 
-        // Poll for job status every 1 second
+        // Save backend conversationId if this is a new conversation
+        if (submitResponse.conversationId && !backendConversationId) {
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === currentConvId ? { ...c, conversationId: submitResponse.conversationId } : c
+            )
+          )
+          backendConversationId = submitResponse.conversationId
+        }
+
+        // Poll for job status
         const result = await chatApi.pollJobStatus(jobId, (status) => {
           console.log(`Job ${jobId} status:`, status.status)
         })
@@ -164,7 +242,7 @@ export default function ChatPage() {
         setIsLoading(false)
       }
     },
-    [activeConversationId, toast, conversations],
+    [activeConversationId, activeConversation, toast],
   )
 
   const handleAction = useCallback(
@@ -176,6 +254,19 @@ export default function ChatPage() {
     },
     [toast],
   )
+
+  if (isLoadingConversations) {
+    return (
+      <ProtectedRoute>
+        <div className="flex h-screen items-center justify-center bg-background">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading conversations...</p>
+          </div>
+        </div>
+      </ProtectedRoute>
+    )
+  }
 
   return (
     <ProtectedRoute>
