@@ -14,4 +14,6 @@ public class JobDescriptionDto {
     String agentType;
     String prompt;
     UUID conversationId;
+    String acceptedModel;
+    String acceptedCode;
 }

@@ -11,12 +11,14 @@ class VisualizerAgent(Agent):
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1)
 
-    async def run(self, execution_output: str, job_id: str, context: str = "", conversation_history: List[Dict[str, Any]] = None) -> dict:
+    async def run(self, execution_output: str, job_id: str, context: str = "", conversation_history: List[Dict[str, Any]] = None, accepted_model: str = "", accepted_code: str = "") -> dict:
         """
-        execution_output: CoderAgent's output
+        execution_output: CoderAgent's output (lub prompt od użytkownika)
         context: original problem context for labeling
         job_id: id of the job for RabbbitMQ tracking
         conversation_history: lista poprzednich wiadomości z konwersacji
+        accepted_model: zaakceptowany model matematyczny
+        accepted_code: zaakceptowany kod Python
         """
         print(f"[VisualizerAgent] Generating visualization code for job {job_id}")
         if conversation_history is None:
@@ -39,6 +41,14 @@ Jeśli zostanie dostarczona historia konwersacji, weź pod uwagę poprzednie wia
 
         # Budowanie wiadomości z historią konwersacji
         messages = [SystemMessage(content=system_template)]
+        
+        # Dodaj zaakceptowany model jako kontekst
+        if accepted_model:
+            messages.append(HumanMessage(content=f"Zaakceptowany model matematyczny:\n\n{accepted_model}"))
+        
+        # Dodaj zaakceptowany kod jako kontekst
+        if accepted_code:
+            messages.append(HumanMessage(content=f"Zaakceptowany kod Python:\n\n{accepted_code}"))
         
         # Dodanie poprzednich wiadomości z historii jako czysty tekst
         for msg in conversation_history:

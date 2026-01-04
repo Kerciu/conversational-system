@@ -10,7 +10,7 @@ class ModelerAgent(Agent):
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.2)
 
-    async def run(self, prompt: str, job_id: str, context: str = "", conversation_history: List[Dict[str, Any]] = None) -> dict:
+    async def run(self, prompt: str, job_id: str, context: str = "", conversation_history: List[Dict[str, Any]] = None, accepted_model: str = "", accepted_code: str = "") -> dict:
         print(f"[ModelerAgent] Processing job {job_id}")
         if conversation_history is None:
             conversation_history = []

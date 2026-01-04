@@ -62,6 +62,14 @@ public class JobService {
         message.put("agentType", jobDescriptionDto.getAgentType());
         message.put("prompt", jobDescriptionDto.getPrompt());
         message.put("conversationHistory", conversationHistory);
+        
+        // Add context for multi-stage workflow
+        if (jobDescriptionDto.getAcceptedModel() != null) {
+            message.put("acceptedModel", jobDescriptionDto.getAcceptedModel());
+        }
+        if (jobDescriptionDto.getAcceptedCode() != null) {
+            message.put("acceptedCode", jobDescriptionDto.getAcceptedCode());
+        }
 
         // Store initial status
         jobResults.put(jobDescriptionDto.getJobId(), Map.of("status", "pending"));

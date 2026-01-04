@@ -10,7 +10,7 @@ class CoderAgent(Agent):
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.0)
 
-    async def run(self, prompt: str, job_id: str, context: str = "", conversation_history: List[Dict[str, Any]] = None) -> dict:
+    async def run(self, prompt: str, job_id: str, context: str = "", conversation_history: List[Dict[str, Any]] = None, accepted_model: str = "", accepted_code: str = "") -> dict:
         print(f"[CoderAgent] Generating code for job {job_id}")
         if conversation_history is None:
             conversation_history = []
@@ -35,6 +35,10 @@ class CoderAgent(Agent):
         # Budowanie wiadomości z historią konwersacji
         messages = [SystemMessage(content=system_template)]
         
+        # Jeśli mamy zaakceptowany model, dodaj go jako kontekst
+        if accepted_model:
+            messages.append(HumanMessage(content=f"Zaakceptowany model matematyczny do implementacji:\n\n{accepted_model}"))
+        
         # Dodanie poprzednich wiadomości z historii jako czysty tekst
         for msg in conversation_history:
             role = msg.get("role", "user")
@@ -46,7 +50,7 @@ class CoderAgent(Agent):
         
         # Tylko aktualny prompt w template
         prompt_template = ChatPromptTemplate.from_messages(
-            messages + [("user", "Oto model matematyczny do implementacji:\n{input}")]
+            messages + [("user", "{input}")]
         )
 
         chain = prompt_template | self.llm | StrOutputParser()

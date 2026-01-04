@@ -52,6 +52,11 @@ public class ResultsListener {
             } catch (Exception e) {
                 System.err.println("Failed to save assistant message: " + e.getMessage());
             }
+        } else if ("TASK_FAILED".equals(status)) {
+            String errorMessage = (String) resultMessage.get("error");
+            String fullError = "Task failed: " + (errorMessage != null ? errorMessage : "Unknown error");
+            System.err.println("Job " + jobId + " failed: " + errorMessage);
+            jobService.updateJobResult(jobId, "error", fullError);
         } else {
             jobService.updateJobResult(jobId, "error", "Task failed: " + status);
         }
