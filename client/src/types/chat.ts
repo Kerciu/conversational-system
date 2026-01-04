@@ -1,3 +1,5 @@
+export type AgentType = "MODELER_AGENT" | "CODER_AGENT" | "VISUALIZER_AGENT"
+
 export interface Message {
   id: string
   role: "user" | "assistant"
@@ -6,6 +8,14 @@ export interface Message {
   type?: "text" | "code" | "model" | "action"
   codeLanguage?: string
   actions?: { label: string; variant: "primary" | "secondary" }[]
+  agentType?: AgentType
+  canAccept?: boolean
+}
+
+export interface SubChat {
+  agentType: AgentType
+  messages: Message[]
+  acceptedMessage?: Message
 }
 
 export interface Conversation {
@@ -15,6 +25,13 @@ export interface Conversation {
   createdAt: Date
   updatedAt: Date
   conversationId?: string
+  
+  subChats: SubChat[]
+  activeSubChatIndex: number
+  
+  acceptedModel?: string
+  acceptedCode?: string
+  codeExecutionResult?: string
 }
 
 export type ConversationGroup = "today" | "yesterday" | "last7days" | "last30days" | "older"

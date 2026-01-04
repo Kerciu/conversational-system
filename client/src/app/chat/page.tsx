@@ -2,24 +2,42 @@
 
 import { useState, useCallback, useEffect } from "react"
 import { ChatSidebar } from "@/components/chat/chat-sidebar"
-import { ChatArea } from "@/components/chat/chat-area"
+import { MultiStageChat } from "@/components/chat/multi-stage-chat"
 import { generateId } from "@/lib/chat-utils"
-import type { Conversation, Message } from "@/types/chat"
+import type { Conversation, Message, SubChat, AgentType } from "@/types/chat"
 import { useToast } from "@/components/ui/use-toast"
 import { AmbientOrbs } from "@/components/ui/ambient-orbs"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { chatApi } from "@/lib/chat-api"
 
-export default function ChatPage() {
+function ChatPageContent() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
+  const [isCreatingNew, setIsCreatingNew] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isLoadingConversations, setIsLoadingConversations] = useState(true)
   const { toast } = useToast()
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId)
-  const messages = activeConversation?.messages || []
+
+  // Initialize new conversation with MODELER subchat
+  const createNewConversation = (initialMessage?: Message): Conversation => {
+    return {
+      id: generateId(),
+      title: initialMessage?.content.slice(0, 50) + (initialMessage && initialMessage.content.length > 50 ? "..." : "") || "New conversation",
+      messages: [], // Deprecated
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      subChats: [
+        {
+          agentType: "MODELER_AGENT",
+          messages: initialMessage ? [initialMessage] : [],
+        },
+      ],
+      activeSubChatIndex: 0,
+    }
+  }
 
   // Load conversations from backend on mount
   useEffect(() => {
@@ -27,14 +45,19 @@ export default function ChatPage() {
       try {
         const backendConversations = await chatApi.getConversations()
         const mappedConversations: Conversation[] = backendConversations.map(conv => ({
+          ...createNewConversation(),
           id: conv.id,
           title: conv.title,
-          messages: [],
           createdAt: new Date(conv.createdAt),
           updatedAt: new Date(conv.updatedAt),
-          conversationId: conv.id, // Backend ID
+          conversationId: conv.id,
         }))
         setConversations(mappedConversations)
+        
+        // If no active conversation is selected, show new conversation screen
+        if (!activeConversationId) {
+          setIsCreatingNew(true)
+        }
       } catch (error) {
         console.error("Failed to load conversations:", error)
         toast({
@@ -51,9 +74,9 @@ export default function ChatPage() {
   }, [toast])
 
   // Load conversation history when selecting a conversation
-  const loadConversationHistory = async (conversationId: string) => {
+  const loadConversationHistory = async (conversationId: string, agentType: AgentType) => {
     try {
-      const history = await chatApi.getConversationHistory(conversationId, "MODELER_AGENT")
+      const history = await chatApi.getConversationHistory(conversationId, agentType)
       
       const messages: Message[] = history.messages.map((msg, index) => ({
         id: `${conversationId}-msg-${index}`,
@@ -61,18 +84,11 @@ export default function ChatPage() {
         content: msg.content,
         timestamp: new Date(),
         type: msg.role === "user" ? "text" : "model",
-        ...(msg.role === "assistant" && {
-          actions: [{ label: "Accept model and generate code", variant: "primary" as const }],
-        }),
+        agentType: agentType,
+        canAccept: msg.role === "assistant",
       }))
 
-      setConversations(prev =>
-        prev.map(c =>
-          c.conversationId === conversationId
-            ? { ...c, messages }
-            : c
-        )
-      )
+      return messages
     } catch (error) {
       console.error("Failed to load conversation history:", error)
       toast({
@@ -80,20 +96,60 @@ export default function ChatPage() {
         description: "Failed to load conversation history",
         variant: "destructive",
       })
+      return []
     }
   }
 
   const handleNewConversation = useCallback(() => {
     setActiveConversationId(null)
+    setIsCreatingNew(true)
   }, [])
 
   const handleSelectConversation = useCallback(async (id: string) => {
+    setIsCreatingNew(false)
     setActiveConversationId(id)
     const conversation = conversations.find(c => c.id === id)
     
     // Load history if not already loaded
-    if (conversation && conversation.messages.length === 0 && conversation.conversationId) {
-      await loadConversationHistory(conversation.conversationId)
+    if (conversation && conversation.subChats[0].messages.length === 0 && conversation.conversationId) {
+      const agentTypes: AgentType[] = ["MODELER_AGENT", "CODER_AGENT", "VISUALIZER_AGENT"]
+      const loadedSubChats: SubChat[] = []
+      
+      for (const agentType of agentTypes) {
+        const messages = await loadConversationHistory(conversation.conversationId, agentType)
+        if (messages.length > 0) {
+          // Check if the last assistant message was accepted
+          const lastAssistantMessage = messages.filter(m => m.role === "assistant").pop()
+          loadedSubChats.push({
+            agentType,
+            messages,
+            acceptedMessage: lastAssistantMessage, // Assume that if there is a next agent, the previous one was accepted
+          })
+        }
+      }
+      
+      // If there are no subchats, add an empty MODELER
+      if (loadedSubChats.length === 0) {
+        loadedSubChats.push({
+          agentType: "MODELER_AGENT",
+          messages: [],
+        })
+      }
+      
+      // Determine active subchat (last with messages or first)
+      const activeIndex = Math.max(0, loadedSubChats.length - 1)
+      
+      setConversations(prev =>
+        prev.map(c =>
+          c.id === id
+            ? {
+                ...c,
+                subChats: loadedSubChats,
+                activeSubChatIndex: activeIndex,
+              }
+            : c
+        )
+      )
     }
   }, [conversations])
 
@@ -133,51 +189,61 @@ export default function ChatPage() {
   )
 
   const handleSendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, agentType: AgentType) => {
       const userMessage: Message = {
         id: generateId(),
         role: "user",
         content,
         timestamp: new Date(),
         type: "text",
+        agentType,
       }
 
       let currentConvId = activeConversationId
       let backendConversationId: string | undefined = activeConversation?.conversationId
 
-      // If no active conversation, create a new one (will be created on backend)
+      // If no active conversation, create a new one
       if (!currentConvId) {
-        const newConv: Conversation = {
-          id: generateId(),
-          title: content.slice(0, 50) + (content.length > 50 ? "..." : ""),
-          messages: [userMessage],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }
+        const newConv = createNewConversation(userMessage)
         setConversations((prev) => [newConv, ...prev])
         setActiveConversationId(newConv.id)
+        setIsCreatingNew(false)
         currentConvId = newConv.id
       } else {
-        // Add user message to existing conversation
+        // Add user message to active subchat
         setConversations((prev) =>
           prev.map((c) =>
-            c.id === currentConvId ? { ...c, messages: [...c.messages, userMessage], updatedAt: new Date() } : c,
-          ),
+            c.id === currentConvId
+              ? {
+                  ...c,
+                  subChats: c.subChats.map((subChat, idx) =>
+                    idx === c.activeSubChatIndex
+                      ? { ...subChat, messages: [...subChat.messages, userMessage] }
+                      : subChat
+                  ),
+                  updatedAt: new Date(),
+                }
+              : c
+          )
         )
       }
 
       setIsLoading(true)
 
       try {
-        // Generate unique job ID
         const jobId = `job-${generateId()}`
 
-        // Submit job to backend with conversationId if available
+        // Get current conversation for context
+        const currentConv = conversations.find(c => c.id === currentConvId)
+
+        // Submit job to backend
         const submitResponse = await chatApi.submitJob({
           jobId,
-          agentType: "MODELER_AGENT",
+          agentType: agentType,
           prompt: content,
           conversationId: backendConversationId,
+          acceptedModel: currentConv?.acceptedModel,
+          acceptedCode: currentConv?.acceptedCode,
         })
 
         if (submitResponse.status !== "ok") {
@@ -205,16 +271,25 @@ export default function ChatPage() {
           role: "assistant",
           content: result.answer || "Job completed but no answer received.",
           timestamp: new Date(),
-          type: "model",
-          actions: [
-            { label: "Accept model and generate code", variant: "primary" },
-          ],
+          type: agentType === "MODELER_AGENT" ? "model" : "code",
+          agentType,
+          canAccept: true,
         }
 
         setConversations((prev) =>
           prev.map((c) =>
-            c.id === currentConvId ? { ...c, messages: [...c.messages, aiMessage], updatedAt: new Date() } : c,
-          ),
+            c.id === currentConvId
+              ? {
+                  ...c,
+                  subChats: c.subChats.map((subChat, idx) =>
+                    idx === c.activeSubChatIndex
+                      ? { ...subChat, messages: [...subChat.messages, aiMessage] }
+                      : subChat
+                  ),
+                  updatedAt: new Date(),
+                }
+              : c
+          )
         )
       } catch (error) {
         console.error("Error processing message:", error)
@@ -224,88 +299,227 @@ export default function ChatPage() {
           variant: "destructive",
         })
 
-        // Add error message to chat
         const errorMessage: Message = {
           id: generateId(),
           role: "assistant",
           content: "Sorry, I encountered an error processing your request. Please try again.",
           timestamp: new Date(),
           type: "text",
+          agentType,
         }
 
         setConversations((prev) =>
           prev.map((c) =>
-            c.id === currentConvId ? { ...c, messages: [...c.messages, errorMessage], updatedAt: new Date() } : c,
-          ),
+            c.id === currentConvId
+              ? {
+                  ...c,
+                  subChats: c.subChats.map((subChat, idx) =>
+                    idx === c.activeSubChatIndex
+                      ? { ...subChat, messages: [...subChat.messages, errorMessage] }
+                      : subChat
+                  ),
+                  updatedAt: new Date(),
+                }
+              : c
+          )
         )
       } finally {
         setIsLoading(false)
       }
     },
-    [activeConversationId, activeConversation, toast],
+    [activeConversationId, activeConversation, toast, conversations],
   )
 
-  const handleAction = useCallback(
-    (action: string) => {
-      toast({
-        title: `Action: ${action}`,
-        description: "This feature will be implemented in the next phase.",
-      })
+  const handleAutoGenerate = useCallback(
+    async (agentType: AgentType, conversationId: string, acceptedModel?: string, acceptedCode?: string) => {
+      setIsLoading(true)
+
+      try {
+        const jobId = `job-${generateId()}`
+        const conversation = conversations.find(c => c.id === conversationId)
+        const backendConversationId = conversation?.conversationId
+
+        if (!backendConversationId) {
+          throw new Error("Backend conversation ID not found")
+        }
+
+        // Submit job to backend bez wiadomości użytkownika
+        const submitResponse = await chatApi.submitJob({
+          jobId,
+          agentType: agentType,
+          prompt: "",
+          conversationId: backendConversationId,
+          acceptedModel: acceptedModel,
+          acceptedCode: acceptedCode,
+        })
+
+        if (submitResponse.status !== "ok") {
+          throw new Error(submitResponse.message || "Failed to submit job")
+        }
+
+        // Poll for job status
+        const result = await chatApi.pollJobStatus(jobId, (status) => {
+          console.log(`Job ${jobId} status:`, status.status)
+        })
+
+        // Create AI message with the result
+        const aiMessage: Message = {
+          id: generateId(),
+          role: "assistant",
+          content: result.answer || "Job completed but no answer received.",
+          timestamp: new Date(),
+          type: agentType === "MODELER_AGENT" ? "model" : "code",
+          agentType,
+          canAccept: true,
+        }
+
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === conversationId
+              ? {
+                  ...c,
+                  subChats: c.subChats.map((subChat, idx) =>
+                    idx === c.activeSubChatIndex
+                      ? { ...subChat, messages: [aiMessage] }
+                      : subChat
+                  ),
+                  updatedAt: new Date(),
+                }
+              : c
+          )
+        )
+      } catch (error) {
+        console.error("Error processing auto-generate:", error)
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to generate",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
     },
-    [toast],
+    [conversations, toast],
   )
 
-  if (isLoadingConversations) {
-    return (
-      <ProtectedRoute>
-        <div className="flex h-screen items-center justify-center bg-background">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading conversations...</p>
-          </div>
-        </div>
-      </ProtectedRoute>
-    )
-  }
+  const handleAcceptMessage = useCallback(
+    (agentType: AgentType, message: Message) => {
+      if (!activeConversationId) return
+
+      const nextAgentType: AgentType | null =
+        agentType === "MODELER_AGENT" ? "CODER_AGENT" : agentType === "CODER_AGENT" ? "VISUALIZER_AGENT" : null
+
+      setConversations((prev) =>
+        prev.map((c) => {
+          if (c.id !== activeConversationId) return c
+
+          const currentSubChatIndex = c.activeSubChatIndex
+
+          // Mark message as accepted in current subchat
+          const updatedSubChats = c.subChats.map((subChat, idx) =>
+            idx === currentSubChatIndex
+              ? { ...subChat, acceptedMessage: message }
+              : subChat
+          )
+
+          // Save accepted data
+          let updates: Partial<Conversation> = {}
+          if (agentType === "MODELER_AGENT") {
+            updates.acceptedModel = message.content
+          } else if (agentType === "CODER_AGENT") {
+            updates.acceptedCode = message.content
+          }
+
+          // Add next subchat if needed
+          if (nextAgentType && !updatedSubChats.find(sc => sc.agentType === nextAgentType)) {
+            updatedSubChats.push({
+              agentType: nextAgentType,
+              messages: [],
+            })
+          }
+
+          return {
+            ...c,
+            ...updates,
+            subChats: updatedSubChats,
+            activeSubChatIndex: nextAgentType ? currentSubChatIndex + 1 : currentSubChatIndex,
+          }
+        })
+      )
+
+      toast({
+        title: `${agentType} accepted`,
+        description: nextAgentType ? `Moving to ${nextAgentType}` : "Process complete",
+      })
+
+      // Automatically generate response for the next agent
+      if (nextAgentType && activeConversationId) {
+        const updatedConv = conversations.find(c => c.id === activeConversationId)
+        if (updatedConv) {
+          setTimeout(() => {
+            handleAutoGenerate(
+              nextAgentType,
+              activeConversationId,
+              nextAgentType === "CODER_AGENT" ? message.content : updatedConv.acceptedModel,
+              nextAgentType === "VISUALIZER_AGENT" ? message.content : updatedConv.acceptedCode
+            )
+          }, 500)
+        }
+      }
+    },
+    [activeConversationId, toast, handleAutoGenerate, conversations],
+  )
+
+  const handleNavigateToSubChat = useCallback(
+    (index: number) => {
+      if (!activeConversationId) return
+
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === activeConversationId
+            ? { ...c, activeSubChatIndex: index }
+            : c
+        )
+      )
+    },
+    [activeConversationId],
+  )
 
   return (
-    <ProtectedRoute>
-      <div className="relative flex h-screen overflow-hidden bg-background">
-        <AmbientOrbs variant="subtle" className="z-0" />
-
-        <div
-          className={`relative z-20 ${isSidebarCollapsed ? "hidden lg:flex" : "fixed inset-y-0 left-0 z-50 lg:relative"}`}
-        >
-          <ChatSidebar
-            conversations={conversations}
-            activeConversationId={activeConversationId}
-            onSelectConversation={handleSelectConversation}
-            onNewConversation={handleNewConversation}
-            onDeleteConversation={handleDeleteConversation}
-            onRenameConversation={handleRenameConversation}
-            isCollapsed={isSidebarCollapsed}
-            onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          />
-        </div>
-
-        {!isSidebarCollapsed && (
-          <div
-            className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
-            onClick={() => setIsSidebarCollapsed(true)}
+    <div className="flex h-screen overflow-hidden bg-background">
+      <AmbientOrbs />
+      <ChatSidebar
+        conversations={conversations}
+        activeConversationId={activeConversationId}
+        isCollapsed={isSidebarCollapsed}
+        onNewConversation={handleNewConversation}
+        onSelectConversation={handleSelectConversation}
+        onDeleteConversation={handleDeleteConversation}
+        onRenameConversation={handleRenameConversation}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        isLoading={isLoadingConversations}
+      />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {(activeConversation || isCreatingNew) && (
+          <MultiStageChat
+            subChats={activeConversation?.subChats || [{ agentType: "MODELER_AGENT", messages: [] }]}
+            activeSubChatIndex={activeConversation?.activeSubChatIndex || 0}
+            conversationId={activeConversation?.conversationId}
+            onSendMessage={handleSendMessage}
+            onAcceptMessage={handleAcceptMessage}
+            onNavigateToSubChat={handleNavigateToSubChat}
+            isLoading={isLoading}
           />
         )}
-
-        <div className="relative z-10 flex-1">
-          <ChatArea
-            messages={messages}
-            isLoading={isLoading}
-            onSend={handleSendMessage}
-            onAction={handleAction}
-            onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            isSidebarCollapsed={isSidebarCollapsed}
-          />
-        </div>
       </div>
+    </div>
+  )
+}
+
+export default function ChatPage() {
+  return (
+    <ProtectedRoute>
+      <ChatPageContent />
     </ProtectedRoute>
   )
 }

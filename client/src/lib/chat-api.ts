@@ -6,6 +6,8 @@ interface JobSubmitRequest {
   agentType: string
   prompt: string
   conversationId?: string
+  acceptedModel?: string
+  acceptedCode?: string
 }
 
 interface JobSubmitResponse {
