@@ -40,14 +40,16 @@ def callback(ch, method, properties, body):
 
         agent_instance = AgentClass()
 
-        result_payload = asyncio.run(agent_instance.run(
-            prompt, 
-            job_id, 
-            context=context, 
-            conversation_history=conversation_history,
-            accepted_model=accepted_model,
-            accepted_code=accepted_code
-        ))
+        result_payload = asyncio.run(
+            agent_instance.run(
+                prompt,
+                job_id,
+                context=context,
+                conversation_history=conversation_history,
+                accepted_model=accepted_model,
+                accepted_code=accepted_code,
+            )
+        )
 
         response_message = {
             "jobId": job_id,
@@ -71,14 +73,15 @@ def callback(ch, method, properties, body):
     except Exception as e:
         print(f"Processing error: {e}")
         import traceback
+
         traceback.print_exc()
-        
+
         # Wyślij wiadomość o błędzie do backendu
         try:
             message_data = json.loads(body)
             job_id = message_data.get("jobId")
             agent_type_str = message_data.get("agentType")
-            
+
             if job_id:
                 error_response = {
                     "jobId": job_id,
@@ -86,7 +89,7 @@ def callback(ch, method, properties, body):
                     "agentType": agent_type_str or "UNKNOWN",
                     "error": str(e),
                 }
-                
+
                 ch.basic_publish(
                     exchange="",
                     routing_key=RABBITMQ_OUT_QUEUE,
@@ -98,5 +101,5 @@ def callback(ch, method, properties, body):
                 print(f"Sent error response for job: {job_id}")
         except Exception as publish_error:
             print(f"Failed to send error response: {publish_error}")
-        
+
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)

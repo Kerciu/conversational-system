@@ -430,7 +430,7 @@ function ChatPageContent() {
           )
 
           // Save accepted data
-          let updates: Partial<Conversation> = {}
+          const updates: Partial<Conversation> = {}
           if (agentType === "MODELER_AGENT") {
             updates.acceptedModel = message.content
           } else if (agentType === "CODER_AGENT") {
