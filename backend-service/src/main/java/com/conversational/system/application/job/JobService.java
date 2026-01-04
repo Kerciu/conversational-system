@@ -27,6 +27,10 @@ public class JobService {
     private String requestQueueName;
 
     public UUID submitJob(JobDescriptionDto jobDescriptionDto, User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("Authenticated user is required to submit a job");
+        }
+
         UUID conversationId = jobDescriptionDto.getConversationId();
         
         // If no conversationId provided, create a new conversation

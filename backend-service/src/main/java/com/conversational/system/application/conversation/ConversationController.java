@@ -2,9 +2,11 @@ package com.conversational.system.application.conversation;
 
 import com.conversational.system.application.entities.conversation.Conversation;
 import com.conversational.system.application.entities.user.User;
+import com.conversational.system.application.entities.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -16,10 +18,24 @@ import java.util.stream.Collectors;
 public class ConversationController {
 
     private final ConversationService conversationService;
+    private final UserRepository userRepository;
 
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> getUserConversations(
-            @AuthenticationPrincipal User user) {
+            @AuthenticationPrincipal UserDetails principal) {
+        
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+        
+        // Fetch the managed User entity from the database
+        User user = userRepository.findByEmail(principal.getUsername())
+            .orElseGet(() -> userRepository.findByUsername(principal.getUsername())
+                .orElse(null));
+        
+        if (user == null) {
+            return ResponseEntity.status(401).build();
+        }
         
         List<Conversation> conversations = conversationService.getUserConversations(user);
         
@@ -37,9 +53,22 @@ public class ConversationController {
 
     @GetMapping("/{conversationId}/history/{agentType}")
     public ResponseEntity<Map<String, Object>> getConversationHistory(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal UserDetails principal,
             @PathVariable UUID conversationId,
             @PathVariable String agentType) {
+        
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+        
+        // Fetch the managed User entity from the database
+        User user = userRepository.findByEmail(principal.getUsername())
+            .orElseGet(() -> userRepository.findByUsername(principal.getUsername())
+                .orElse(null));
+        
+        if (user == null) {
+            return ResponseEntity.status(401).build();
+        }
         
         Optional<Conversation> conversation = conversationService.getConversation(conversationId);
         
@@ -63,8 +92,21 @@ public class ConversationController {
 
     @DeleteMapping("/{conversationId}")
     public ResponseEntity<Map<String, String>> deleteConversation(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal UserDetails principal,
             @PathVariable UUID conversationId) {
+        
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+        
+        // Fetch the managed User entity from the database
+        User user = userRepository.findByEmail(principal.getUsername())
+            .orElseGet(() -> userRepository.findByUsername(principal.getUsername())
+                .orElse(null));
+        
+        if (user == null) {
+            return ResponseEntity.status(401).build();
+        }
         
         Optional<Conversation> conversation = conversationService.getConversation(conversationId);
         
