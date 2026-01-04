@@ -11,6 +11,7 @@ def callback(ch, method, properties, body):
         job_id = message_data.get("jobId")
         agent_type_str = message_data.get("agentType")
         prompt = message_data.get("prompt")
+        conversation_history = message_data.get("conversationHistory", [])
 
         if not all([job_id, agent_type_str, prompt]):
             print(f"Error: Incomplete message, rejecting: {message_data}")
@@ -19,6 +20,7 @@ def callback(ch, method, properties, body):
 
         print(f"Got job: {job_id}")
         print(f"Delegating work to {agent_type_str}")
+        print(f"Conversation history length: {len(conversation_history)} messages")
 
         AgentClass = get_agent_class(agent_type_str)
 
@@ -31,7 +33,7 @@ def callback(ch, method, properties, body):
 
         agent_instance = AgentClass()
 
-        result_payload = asyncio.run(agent_instance.run(prompt, job_id))
+        result_payload = asyncio.run(agent_instance.run(prompt, job_id, conversation_history=conversation_history))
 
         response_message = {
             "jobId": job_id,

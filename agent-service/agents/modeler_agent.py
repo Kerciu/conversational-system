@@ -2,14 +2,17 @@ from agents.agent import Agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from typing import List, Dict, Any
 
 
 class ModelerAgent(Agent):
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.2)
 
-    async def run(self, prompt: str, job_id: str, context: str = "") -> dict:
+    async def run(self, prompt: str, job_id: str, context: str = "", conversation_history: List[Dict[str, Any]] = None) -> dict:
         print(f"[ModelerAgent] Processing job {job_id}")
+        if conversation_history is None:
+            conversation_history = []
 
         system_template = """
         Jesteś ekspertem Badań Operacyjnych (Operations Research).
@@ -29,8 +32,23 @@ class ModelerAgent(Agent):
         5. NIE używaj bloku kodu ```latex ... ```.
         
         Bądź zwięzły, czytelny i profesjonalny.
+        
+        Jeśli zostanie dostarczona historia konwersacji, weź pod uwagę poprzednie wiadomości i kontekst, aby lepiej zrozumieć potrzeby użytkownika i doprecyzować model.
         """
 
+        # Budowanie wiadomości z historią konwersacji
+        messages = [("system", system_template)]
+        
+        # Dodanie poprzednich wiadomości z historii
+        for msg in conversation_history:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if role == "user":
+                messages.append(("user", content))
+            elif role == "assistant":
+                messages.append(("assistant", content))
+        
+        # Dodanie aktualnego promptu
         user_template = """
         Sformułuj model matematyczny dla poniższego problemu.
         
@@ -41,10 +59,9 @@ class ModelerAgent(Agent):
         OPIS PROBLEMU UŻYTKOWNIKA:
         {input}
         """
+        messages.append(("user", user_template))
 
-        prompt_template = ChatPromptTemplate.from_messages(
-            [("system", system_template), ("user", user_template)]
-        )
+        prompt_template = ChatPromptTemplate.from_messages(messages)
 
         chain = prompt_template | self.llm | StrOutputParser()
 

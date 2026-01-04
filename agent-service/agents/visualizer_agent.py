@@ -1,6 +1,7 @@
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
+from typing import List, Dict, Any
 
 from agents.agent import Agent
 
@@ -9,13 +10,16 @@ class VisualizerAgent(Agent):
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1)
 
-    async def run(self, execution_output: str, job_id: str, context: str = "") -> dict:
+    async def run(self, execution_output: str, job_id: str, context: str = "", conversation_history: List[Dict[str, Any]] = None) -> dict:
         """
         execution_output: CoderAgent's output
         context: original problem context for labeling
         job_id: id of the job for RabbbitMQ tracking
+        conversation_history: lista poprzednich wiadomości z konwersacji
         """
         print(f"[VisualizerAgent] Generating visualization code for job {job_id}")
+        if conversation_history is None:
+            conversation_history = []
 
         system_template = """Jesteś ekspertem od analizy i wizualizacji danych (Data Analysis Visualization) i biblioteki Matplotlib.
 Twój cel: Napisać krótki skrypt w Pythonie, który na podstawie tekstowych WYNIKÓW z solera wygeneruje plik z wykresem.
@@ -28,17 +32,31 @@ Zasady:
 5. NIE używaj plt.show() (kod będzie uruchamiany na serwerze bez ekranu).
 6. Podpisz osie i dodaj tytuł bazując na 'KONTEKŚCIE PROBLEMU'.
 
-Zwróć TYLKO kod źródłowy Python, bez bloków markdown, gotowy do uruchomienia."""
+Zwróć TYLKO kod źródłowy Python, bez bloków markdown, gotowy do uruchomienia.
 
+Jeśli zostanie dostarczona historia konwersacji, weź pod uwagę poprzednie wiadomości, aby lepiej zrozumieć kontekst i preferencje użytkownika."""
+
+        # Budowanie wiadomości z historią konwersacji
+        messages = [("system", system_template)]
+        
+        # Dodanie poprzednich wiadomości z historii
+        for msg in conversation_history:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if role == "user":
+                messages.append(("user", content))
+            elif role == "assistant":
+                messages.append(("assistant", content))
+        
+        # Dodanie aktualnego promptu
         user_template = """=== KONTEKST PROBLEMU (do etykiet i tytułów) ===
 {context}
 
 === WYNIKI URUCHOMIENIA KODU (dane do wykresu) ===
 {input}"""
+        messages.append(("user", user_template))
 
-        prompt_template = ChatPromptTemplate.from_messages(
-            [("system", system_template), ("user", user_template)]
-        )
+        prompt_template = ChatPromptTemplate.from_messages(messages)
 
         chain = prompt_template | self.llm | StrOutputParser()
         response = await chain.ainvoke({"input": execution_output, "context": context})
