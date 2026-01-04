@@ -12,6 +12,7 @@ def callback(ch, method, properties, body):
         agent_type_str = message_data.get("agentType")
         prompt = message_data.get("prompt")
         conversation_history = message_data.get("conversationHistory", [])
+        context = message_data.get("context", "")
 
         if not all([job_id, agent_type_str, prompt]):
             print(f"Error: Incomplete message, rejecting: {message_data}")
@@ -33,7 +34,7 @@ def callback(ch, method, properties, body):
 
         agent_instance = AgentClass()
 
-        result_payload = asyncio.run(agent_instance.run(prompt, job_id, conversation_history=conversation_history))
+        result_payload = asyncio.run(agent_instance.run(prompt, job_id, context=context, conversation_history=conversation_history))
 
         response_message = {
             "jobId": job_id,
