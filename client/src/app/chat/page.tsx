@@ -347,7 +347,7 @@ function ChatPageContent() {
         const submitResponse = await chatApi.submitJob({
           jobId,
           agentType: agentType,
-          prompt: "",
+          prompt: " ",
           conversationId: backendConversationId,
           acceptedModel: acceptedModel,
           acceptedCode: acceptedCode,
