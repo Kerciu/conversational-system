@@ -1,5 +1,6 @@
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from typing import List, Dict, Any
 
@@ -37,26 +38,27 @@ Zwróć TYLKO kod źródłowy Python, bez bloków markdown, gotowy do uruchomien
 Jeśli zostanie dostarczona historia konwersacji, weź pod uwagę poprzednie wiadomości, aby lepiej zrozumieć kontekst i preferencje użytkownika."""
 
         # Budowanie wiadomości z historią konwersacji
-        messages = [("system", system_template)]
+        messages = [SystemMessage(content=system_template)]
         
-        # Dodanie poprzednich wiadomości z historii
+        # Dodanie poprzednich wiadomości z historii jako czysty tekst
         for msg in conversation_history:
             role = msg.get("role", "user")
             content = msg.get("content", "")
             if role == "user":
-                messages.append(("user", content))
+                messages.append(HumanMessage(content=content))
             elif role == "assistant":
-                messages.append(("assistant", content))
+                messages.append(AIMessage(content=content))
         
-        # Dodanie aktualnego promptu
+        # Tylko aktualny prompt w template
         user_template = """=== KONTEKST PROBLEMU (do etykiet i tytułów) ===
 {context}
 
 === WYNIKI URUCHOMIENIA KODU (dane do wykresu) ===
 {input}"""
-        messages.append(("user", user_template))
-
-        prompt_template = ChatPromptTemplate.from_messages(messages)
+        
+        prompt_template = ChatPromptTemplate.from_messages(
+            messages + [("user", user_template)]
+        )
 
         chain = prompt_template | self.llm | StrOutputParser()
         response = await chain.ainvoke({"input": execution_output, "context": context})

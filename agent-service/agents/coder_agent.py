@@ -2,6 +2,7 @@ from agents.agent import Agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from typing import List, Dict, Any
 
 
@@ -32,21 +33,21 @@ class CoderAgent(Agent):
         """
 
         # Budowanie wiadomości z historią konwersacji
-        messages = [("system", system_template)]
+        messages = [SystemMessage(content=system_template)]
         
-        # Dodanie poprzednich wiadomości z historii
+        # Dodanie poprzednich wiadomości z historii jako czysty tekst
         for msg in conversation_history:
             role = msg.get("role", "user")
             content = msg.get("content", "")
             if role == "user":
-                messages.append(("user", content))
+                messages.append(HumanMessage(content=content))
             elif role == "assistant":
-                messages.append(("assistant", content))
+                messages.append(AIMessage(content=content))
         
-        # Dodanie aktualnego promptu
-        messages.append(("user", "Oto model matematyczny do implementacji:\n{input}"))
-
-        prompt_template = ChatPromptTemplate.from_messages(messages)
+        # Tylko aktualny prompt w template
+        prompt_template = ChatPromptTemplate.from_messages(
+            messages + [("user", "Oto model matematyczny do implementacji:\n{input}")]
+        )
 
         chain = prompt_template | self.llm | StrOutputParser()
 

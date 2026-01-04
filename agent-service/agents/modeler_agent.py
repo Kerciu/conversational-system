@@ -2,6 +2,7 @@ from agents.agent import Agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from typing import List, Dict, Any
 
 
@@ -37,18 +38,19 @@ class ModelerAgent(Agent):
         """
 
         # Budowanie wiadomości z historią konwersacji
-        messages = [("system", system_template)]
+        # System message
+        messages = [SystemMessage(content=system_template)]
         
-        # Dodanie poprzednich wiadomości z historii
+        # Dodanie poprzednich wiadomości z historii jako czysty tekst (nie template)
         for msg in conversation_history:
             role = msg.get("role", "user")
             content = msg.get("content", "")
             if role == "user":
-                messages.append(("user", content))
+                messages.append(HumanMessage(content=content))
             elif role == "assistant":
-                messages.append(("assistant", content))
+                messages.append(AIMessage(content=content))
         
-        # Dodanie aktualnego promptu
+        # Tylko aktualny prompt użytkownika jest w template (może zawierać zmienne)
         user_template = """
         Sformułuj model matematyczny dla poniższego problemu.
         
@@ -59,9 +61,9 @@ class ModelerAgent(Agent):
         OPIS PROBLEMU UŻYTKOWNIKA:
         {input}
         """
-        messages.append(("user", user_template))
-
-        prompt_template = ChatPromptTemplate.from_messages(messages)
+        prompt_template = ChatPromptTemplate.from_messages(
+            messages + [("user", user_template)]
+        )
 
         chain = prompt_template | self.llm | StrOutputParser()
 
