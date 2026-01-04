@@ -118,12 +118,9 @@ function ChatPageContent() {
       for (const agentType of agentTypes) {
         const messages = await loadConversationHistory(conversation.conversationId, agentType)
         if (messages.length > 0) {
-          // Check if the last assistant message was accepted
-          const lastAssistantMessage = messages.filter(m => m.role === "assistant").pop()
           loadedSubChats.push({
             agentType,
             messages,
-            acceptedMessage: lastAssistantMessage, // Assume that if there is a next agent, the previous one was accepted
           })
         }
       }
@@ -134,6 +131,14 @@ function ChatPageContent() {
           agentType: "MODELER_AGENT",
           messages: [],
         })
+      }
+      
+      // Mark last assistant message in each subchat (except last) as accepted
+      for (let i = 0; i < loadedSubChats.length - 1; i++) {
+        const lastAssistantMessage = loadedSubChats[i].messages.filter(m => m.role === "assistant").pop()
+        if (lastAssistantMessage) {
+          loadedSubChats[i].acceptedMessage = lastAssistantMessage
+        }
       }
       
       // Determine active subchat (last with messages or first)
