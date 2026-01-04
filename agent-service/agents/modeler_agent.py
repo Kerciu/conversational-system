@@ -8,9 +8,19 @@ from typing import List, Dict, Any
 
 class ModelerAgent(Agent):
     def __init__(self):
-        self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.2)
+        self.llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash-lite", temperature=0.2
+        )
 
-    async def run(self, prompt: str, job_id: str, context: str = "", conversation_history: List[Dict[str, Any]] = None, accepted_model: str = "", accepted_code: str = "") -> dict:
+    async def run(
+        self,
+        prompt: str,
+        job_id: str,
+        context: str = "",
+        conversation_history: List[Dict[str, Any]] = None,
+        accepted_model: str = "",
+        accepted_code: str = "",
+    ) -> dict:
         print(f"[ModelerAgent] Processing job {job_id}")
         if conversation_history is None:
             conversation_history = []
@@ -40,7 +50,7 @@ class ModelerAgent(Agent):
         # Budowanie wiadomości z historią konwersacji
         # System message
         messages = [SystemMessage(content=system_template)]
-        
+
         # Dodanie poprzednich wiadomości z historii jako czysty tekst (nie template)
         for msg in conversation_history:
             role = msg.get("role", "user")
@@ -49,7 +59,7 @@ class ModelerAgent(Agent):
                 messages.append(HumanMessage(content=content))
             elif role == "assistant":
                 messages.append(AIMessage(content=content))
-        
+
         # Tylko aktualny prompt użytkownika jest w template (może zawierać zmienne)
         user_template = """
         Sformułuj model matematyczny dla poniższego problemu.
@@ -69,4 +79,8 @@ class ModelerAgent(Agent):
 
         response = await chain.ainvoke({"input": prompt, "context": context})
 
-        return {"type": "math_model", "content": response, "engine": "gemini-2.5-flash"}
+        return {
+            "type": "math_model",
+            "content": response,
+            "engine": "gemini-2.5-flash-lite",
+        }

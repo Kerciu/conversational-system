@@ -9,9 +9,19 @@ from agents.agent import Agent
 
 class VisualizerAgent(Agent):
     def __init__(self):
-        self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1)
+        self.llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash-lite", temperature=0.1
+        )
 
-    async def run(self, execution_output: str, job_id: str, context: str = "", conversation_history: List[Dict[str, Any]] = None, accepted_model: str = "", accepted_code: str = "") -> dict:
+    async def run(
+        self,
+        execution_output: str,
+        job_id: str,
+        context: str = "",
+        conversation_history: List[Dict[str, Any]] = None,
+        accepted_model: str = "",
+        accepted_code: str = "",
+    ) -> dict:
         """
         execution_output: CoderAgent's output (lub prompt od użytkownika)
         context: original problem context for labeling
@@ -41,15 +51,21 @@ Jeśli zostanie dostarczona historia konwersacji, weź pod uwagę poprzednie wia
 
         # Budowanie wiadomości z historią konwersacji
         messages = [SystemMessage(content=system_template)]
-        
+
         # Dodaj zaakceptowany model jako kontekst
         if accepted_model:
-            messages.append(HumanMessage(content=f"Zaakceptowany model matematyczny:\n\n{accepted_model}"))
-        
+            messages.append(
+                HumanMessage(
+                    content=f"Zaakceptowany model matematyczny:\n\n{accepted_model}"
+                )
+            )
+
         # Dodaj zaakceptowany kod jako kontekst
         if accepted_code:
-            messages.append(HumanMessage(content=f"Zaakceptowany kod Python:\n\n{accepted_code}"))
-        
+            messages.append(
+                HumanMessage(content=f"Zaakceptowany kod Python:\n\n{accepted_code}")
+            )
+
         # Dodanie poprzednich wiadomości z historii jako czysty tekst
         for msg in conversation_history:
             role = msg.get("role", "user")
@@ -58,14 +74,14 @@ Jeśli zostanie dostarczona historia konwersacji, weź pod uwagę poprzednie wia
                 messages.append(HumanMessage(content=content))
             elif role == "assistant":
                 messages.append(AIMessage(content=content))
-        
+
         # Tylko aktualny prompt w template
         user_template = """=== KONTEKST PROBLEMU (do etykiet i tytułów) ===
 {context}
 
 === WYNIKI URUCHOMIENIA KODU (dane do wykresu) ===
 {input}"""
-        
+
         prompt_template = ChatPromptTemplate.from_messages(
             messages + [("user", user_template)]
         )
@@ -79,5 +95,5 @@ Jeśli zostanie dostarczona historia konwersacji, weź pod uwagę poprzednie wia
         return {
             "type": "visualization_code",
             "content": cleaned_code,
-            "engine": "gemini-2.5-flash",
+            "engine": "gemini-2.5-flash-lite",
         }
