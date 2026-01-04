@@ -83,7 +83,9 @@ function ChatPageContent() {
         role: msg.role as "user" | "assistant",
         content: msg.content,
         timestamp: new Date(),
-        type: msg.role === "user" ? "text" : "model",
+        type: msg.role === "user" 
+          ? "text" 
+          : agentType === "MODELER_AGENT" ? "model" : "code",
         agentType: agentType,
         canAccept: msg.role === "assistant",
       }))
