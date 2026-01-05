@@ -32,53 +32,63 @@ public class JobService {
         }
 
         UUID conversationId = jobDescriptionDto.getConversationId();
-        
+
         // If no conversationId provided, create a new conversation
         if (conversationId == null) {
             Conversation newConversation = conversationService.createConversation(
-                user, 
-                jobDescriptionDto.getPrompt().substring(0, Math.min(20, jobDescriptionDto.getPrompt().length())) //TODO improve title
+                    user,
+                    jobDescriptionDto.getPrompt().substring(0, Math.min(20, jobDescriptionDto.getPrompt().length())) // TODO
+                                                                                                                     // improve
+                                                                                                                     // title
             );
             conversationId = newConversation.getId();
             System.out.println("Created new conversation: " + conversationId);
         }
-        
+
         jobToConversationMap.put(jobDescriptionDto.getJobId(), conversationId);
-        
+
         conversationService.saveUserMessage(
-            conversationId,
-            jobDescriptionDto.getAgentType(),
-            jobDescriptionDto.getPrompt(),
-            jobDescriptionDto.getJobId()
-        );
-        
+                conversationId,
+                jobDescriptionDto.getAgentType(),
+                jobDescriptionDto.getPrompt(),
+                jobDescriptionDto.getJobId());
+
         List<Map<String, Object>> conversationHistory = conversationService.getConversationHistory(
-            conversationId,
-            jobDescriptionDto.getAgentType()
-        );
+                conversationId,
+                jobDescriptionDto.getAgentType());
 
         Map<String, Object> message = new HashMap<>();
         message.put("jobId", jobDescriptionDto.getJobId());
         message.put("agentType", jobDescriptionDto.getAgentType());
         message.put("prompt", jobDescriptionDto.getPrompt());
         message.put("conversationHistory", conversationHistory);
-        
-        // Add context for multi-stage workflow
-        if (jobDescriptionDto.getAcceptedModel() != null) {
-            message.put("acceptedModel", jobDescriptionDto.getAcceptedModel());
+
+        // Add context for multi-stage workflow - resolve from messageId if provided
+        String acceptedModel = jobDescriptionDto.getAcceptedModel();
+        if (acceptedModel == null && jobDescriptionDto.getAcceptedModelMessageId() != null) {
+            acceptedModel = conversationService.getMessageContent(jobDescriptionDto.getAcceptedModelMessageId());
         }
-        if (jobDescriptionDto.getAcceptedCode() != null) {
-            message.put("acceptedCode", jobDescriptionDto.getAcceptedCode());
+        if (acceptedModel != null) {
+            message.put("acceptedModel", acceptedModel);
+        }
+
+        String acceptedCode = jobDescriptionDto.getAcceptedCode();
+        if (acceptedCode == null && jobDescriptionDto.getAcceptedCodeMessageId() != null) {
+            acceptedCode = conversationService.getMessageContent(jobDescriptionDto.getAcceptedCodeMessageId());
+        }
+        if (acceptedCode != null) {
+            message.put("acceptedCode", acceptedCode);
         }
 
         // Store initial status
         jobResults.put(jobDescriptionDto.getJobId(), Map.of("status", "pending"));
 
         rabbitTemplate.convertAndSend(requestQueueName, message);
-        System.out.println("Job " + jobDescriptionDto.getJobId() + " submitted with agent type: " + jobDescriptionDto.getAgentType());
+        System.out.println("Job " + jobDescriptionDto.getJobId() + " submitted with agent type: "
+                + jobDescriptionDto.getAgentType());
         System.out.println("Conversation ID: " + conversationId);
         System.out.println("Conversation history size: " + conversationHistory.size());
-        
+
         return conversationId;
     }
 
@@ -91,10 +101,17 @@ public class JobService {
     }
 
     public void updateJobResult(String jobId, String status, String answer) {
+        updateJobResult(jobId, status, answer, null);
+    }
+
+    public void updateJobResult(String jobId, String status, String answer, String messageId) {
         Map<String, String> result = new HashMap<>();
         result.put("status", status);
         if (answer != null) {
             result.put("answer", answer);
+        }
+        if (messageId != null) {
+            result.put("messageId", messageId);
         }
         jobResults.put(jobId, result);
     }

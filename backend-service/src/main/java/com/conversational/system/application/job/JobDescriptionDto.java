@@ -16,4 +16,6 @@ public class JobDescriptionDto {
     UUID conversationId;
     String acceptedModel;
     String acceptedCode;
+    UUID acceptedModelMessageId;
+    UUID acceptedCodeMessageId;
 }

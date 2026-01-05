@@ -43,13 +43,13 @@ public class ConversationService {
     @Transactional
     public Message saveUserMessage(UUID conversationId, String agentType, String content, String jobId) {
         AgentConversation agentConversation = getOrCreateAgentConversation(conversationId, agentType);
-        
+
         Message message = new Message(agentConversation, "user", content, jobId);
         message = messageRepository.save(message);
-        
+
         agentConversation.updateTimestamp();
         agentConversation.getConversation().updateTimestamp();
-        
+
         return message;
     }
 
@@ -59,14 +59,21 @@ public class ConversationService {
                 .orElseThrow(() -> new RuntimeException("User message with jobId not found"));
 
         AgentConversation agentConversation = userMessage.getAgentConversation();
-        
+
         Message message = new Message(agentConversation, "assistant", content, jobId);
         message = messageRepository.save(message);
-        
+
         agentConversation.updateTimestamp();
         agentConversation.getConversation().updateTimestamp();
-        
+
         return message;
+    }
+
+    @Transactional(readOnly = true)
+    public String getMessageContent(UUID messageId) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found"));
+        return message.getContent();
     }
 
     @Transactional(readOnly = true)
@@ -84,9 +91,9 @@ public class ConversationService {
 
         return messages.stream()
                 .map(msg -> Map.of(
-                        "role", (Object) msg.getRole(),
-                        "content", msg.getContent()
-                ))
+                        "id", (Object) msg.getId().toString(),
+                        "role", msg.getRole(),
+                        "content", msg.getContent()))
                 .collect(Collectors.toList());
     }
 

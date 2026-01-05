@@ -29,8 +29,7 @@ public class JobController {
             if (principal == null || principal.getUsername() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
                         "status", "error",
-                        "message", "User not authenticated"
-                ));
+                        "message", "User not authenticated"));
             }
 
             // Fetch User entity from DB using username/email from JWT
@@ -43,23 +42,24 @@ public class JobController {
             if (userOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
                         "status", "error",
-                        "message", "User not found"
-                ));
+                        "message", "User not found"));
             }
 
             User user = userOpt.get();
 
+            // Generate jobId on backend
+            String jobId = "job-" + UUID.randomUUID().toString();
+            jobDescriptionDto.setJobId(jobId);
+
             UUID conversationId = jobService.submitJob(jobDescriptionDto, user);
             return ResponseEntity.ok(Map.of(
-                "status", "ok", 
-                "jobId", jobDescriptionDto.getJobId(),
-                "conversationId", conversationId.toString()
-            ));
+                    "status", "ok",
+                    "jobId", jobId,
+                    "conversationId", conversationId.toString()));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of(
-                "status", "error", 
-                "message", "Error submitting job: " + e.getMessage()
-            ));
+                    "status", "error",
+                    "message", "Error submitting job: " + e.getMessage()));
         }
     }
 

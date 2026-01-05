@@ -78,8 +78,8 @@ function ChatPageContent() {
     try {
       const history = await chatApi.getConversationHistory(conversationId, agentType)
 
-      const messages: Message[] = history.messages.map((msg, index) => ({
-        id: `${conversationId}-msg-${index}`,
+      const messages: Message[] = history.messages.map((msg) => ({
+        id: msg.id,
         role: msg.role as "user" | "assistant",
         content: msg.content,
         timestamp: new Date(),
@@ -238,24 +238,23 @@ function ChatPageContent() {
       setIsLoading(true)
 
       try {
-        const jobId = `job-${generateId()}`
-
         // Get current conversation for context
         const currentConv = conversations.find(c => c.id === currentConvId)
 
         // Submit job to backend
         const submitResponse = await chatApi.submitJob({
-          jobId,
           agentType: agentType,
           prompt: content,
           conversationId: backendConversationId,
-          acceptedModel: currentConv?.acceptedModel,
-          acceptedCode: currentConv?.acceptedCode,
+          acceptedModelMessageId: currentConv?.acceptedModelMessageId,
+          acceptedCodeMessageId: currentConv?.acceptedCodeMessageId,
         })
 
-        if (submitResponse.status !== "ok") {
+        if (submitResponse.status !== "ok" || !submitResponse.jobId) {
           throw new Error(submitResponse.message || "Failed to submit job")
         }
+
+        const jobId = submitResponse.jobId
 
         // Save backend conversationId if this is a new conversation
         if (submitResponse.conversationId && !backendConversationId) {
@@ -274,7 +273,7 @@ function ChatPageContent() {
 
         // Create AI message with the result
         const aiMessage: Message = {
-          id: generateId(),
+          id: result.messageId || generateId(), // Use messageId from backend or fallback
           role: "assistant",
           content: result.answer || "Job completed but no answer received.",
           timestamp: new Date(),
@@ -338,11 +337,10 @@ function ChatPageContent() {
   )
 
   const handleAutoGenerate = useCallback(
-    async (agentType: AgentType, conversationId: string, acceptedModel?: string, acceptedCode?: string) => {
+    async (agentType: AgentType, conversationId: string, acceptedModelMessageId?: string, acceptedCodeMessageId?: string) => {
       setIsLoading(true)
 
       try {
-        const jobId = `job-${generateId()}`
         const conversation = conversations.find(c => c.id === conversationId)
         const backendConversationId = conversation?.conversationId
 
@@ -350,28 +348,29 @@ function ChatPageContent() {
           throw new Error("Backend conversation ID not found")
         }
 
-        // Submit job to backend bez wiadomości użytkownika
+        // Submit job to backend
         const submitResponse = await chatApi.submitJob({
-          jobId,
           agentType: agentType,
           prompt: " ",
           conversationId: backendConversationId,
-          acceptedModel: acceptedModel,
-          acceptedCode: acceptedCode,
+          acceptedModelMessageId: acceptedModelMessageId,
+          acceptedCodeMessageId: acceptedCodeMessageId,
         })
 
-        if (submitResponse.status !== "ok") {
+        if (submitResponse.status !== "ok" || !submitResponse.jobId) {
           throw new Error(submitResponse.message || "Failed to submit job")
         }
+
+        const jobId = submitResponse.jobId
 
         // Poll for job status
         const result = await chatApi.pollJobStatus(jobId, (status) => {
           console.log(`Job ${jobId} status:`, status.status)
         })
 
-        // Create AI message with the result
+        // Create AI message with the result - use messageId from backend
         const aiMessage: Message = {
-          id: generateId(),
+          id: result.messageId || generateId(), // Use messageId from backend or fallback
           role: "assistant",
           content: result.answer || "Job completed but no answer received.",
           timestamp: new Date(),
@@ -429,12 +428,12 @@ function ChatPageContent() {
               : subChat
           )
 
-          // Save accepted data
+          // Save accepted messageId
           const updates: Partial<Conversation> = {}
           if (agentType === "MODELER_AGENT") {
-            updates.acceptedModel = message.content
+            updates.acceptedModelMessageId = message.id
           } else if (agentType === "CODER_AGENT") {
-            updates.acceptedCode = message.content
+            updates.acceptedCodeMessageId = message.id
           }
 
           // Add next subchat if needed
@@ -467,8 +466,8 @@ function ChatPageContent() {
             handleAutoGenerate(
               nextAgentType,
               activeConversationId,
-              nextAgentType === "CODER_AGENT" ? message.content : updatedConv.acceptedModel,
-              nextAgentType === "VISUALIZER_AGENT" ? message.content : updatedConv.acceptedCode
+              nextAgentType === "CODER_AGENT" ? message.id : updatedConv.acceptedModelMessageId,
+              nextAgentType === "VISUALIZER_AGENT" ? message.id : updatedConv.acceptedCodeMessageId
             )
           }, 500)
         }

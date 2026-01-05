@@ -2,12 +2,11 @@ const API_BASE = "http://localhost:8080/api/test"
 const CONVERSATIONS_API = "http://localhost:8080/api/conversations"
 
 interface JobSubmitRequest {
-  jobId: string
   agentType: string
   prompt: string
   conversationId?: string
-  acceptedModel?: string
-  acceptedCode?: string
+  acceptedModelMessageId?: string
+  acceptedCodeMessageId?: string
 }
 
 interface JobSubmitResponse {
@@ -21,6 +20,7 @@ interface JobStatusResponse {
   status: "pending" | "completed" | "error" | "not_found"
   answer?: string
   message?: string
+  messageId?: string
 }
 
 interface ConversationRecord {
@@ -33,7 +33,7 @@ interface ConversationRecord {
 interface ConversationHistory {
   conversationId: string
   agentType: string
-  messages: Array<{ role: string; content: string }>
+  messages: Array<{ id: string; role: string; content: string }>
 }
 
 const getAuthHeaders = (): HeadersInit => {
@@ -51,11 +51,11 @@ export const chatApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify(request),
     })
-    
+
     if (!response.ok) {
       throw new Error(`Failed to submit job: ${response.statusText}`)
     }
-    
+
     return response.json()
   },
 
@@ -64,16 +64,16 @@ export const chatApi = {
       method: "GET",
       headers: getAuthHeaders(),
     })
-    
+
     if (!response.ok && response.status !== 202) {
       throw new Error(`Failed to get job status: ${response.statusText}`)
     }
-    
+
     return response.json()
   },
 
   pollJobStatus: async (
-    jobId: string, 
+    jobId: string,
     onUpdate: (status: JobStatusResponse) => void,
     intervalMs: number = 1000
   ): Promise<JobStatusResponse> => {
@@ -82,7 +82,7 @@ export const chatApi = {
         try {
           const status = await chatApi.getJobStatus(jobId)
           onUpdate(status)
-          
+
           if (status.status === "completed") {
             clearInterval(pollInterval)
             resolve(status)
@@ -104,11 +104,11 @@ export const chatApi = {
       method: "GET",
       headers: getAuthHeaders(),
     })
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch conversations: ${response.statusText}`)
     }
-    
+
     return response.json()
   },
 
@@ -117,11 +117,11 @@ export const chatApi = {
       method: "GET",
       headers: getAuthHeaders(),
     })
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch conversation history: ${response.statusText}`)
     }
-    
+
     return response.json()
   },
 
@@ -130,7 +130,7 @@ export const chatApi = {
       method: "DELETE",
       headers: getAuthHeaders(),
     })
-    
+
     if (!response.ok) {
       throw new Error(`Failed to delete conversation: ${response.statusText}`)
     }

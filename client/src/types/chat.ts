@@ -25,12 +25,12 @@ export interface Conversation {
   createdAt: Date
   updatedAt: Date
   conversationId?: string
-  
+
   subChats: SubChat[]
   activeSubChatIndex: number
-  
-  acceptedModel?: string
-  acceptedCode?: string
+
+  acceptedModelMessageId?: string
+  acceptedCodeMessageId?: string
   codeExecutionResult?: string
 }
 

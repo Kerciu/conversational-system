@@ -22,14 +22,14 @@ public class ResultsListener {
     public void receiveJobResults(Map<String, Object> resultMessage) {
         String jobId = (String) resultMessage.get("jobId");
         String status = (String) resultMessage.get("status");
-        
+
         System.out.println("Got result for job: " + jobId);
         System.out.println("Status: " + status);
-        
+
         // Extract answer from payload
         String answer = "No answer available";
         Object payload = resultMessage.get("payload");
-        
+
         if (payload instanceof Map) {
             @SuppressWarnings("unchecked")
             Map<String, Object> payloadMap = (Map<String, Object>) payload;
@@ -38,20 +38,23 @@ public class ResultsListener {
                 answer = content.toString();
             }
         }
-        
+
         System.out.println("Answer extracted: " + answer.substring(0, Math.min(100, answer.length())));
-        
+
         // Update job status in JobService
         if ("TASK_COMPLETED".equals(status)) {
-            jobService.updateJobResult(jobId, "completed", answer);
-            
             // Save assistant message to database
+            String messageId = null;
             try {
-                conversationService.saveAssistantMessage(jobId, answer);
-                System.out.println("Assistant message saved for job: " + jobId);
+                var message = conversationService.saveAssistantMessage(jobId, answer);
+                messageId = message.getId().toString();
+                System.out.println("Assistant message saved for job: " + jobId + " with messageId: " + messageId);
             } catch (Exception e) {
                 System.err.println("Failed to save assistant message: " + e.getMessage());
             }
+
+            // Update job result with messageId
+            jobService.updateJobResult(jobId, "completed", answer, messageId);
         } else if ("TASK_FAILED".equals(status)) {
             String errorMessage = (String) resultMessage.get("error");
             String fullError = "Task failed: " + (errorMessage != null ? errorMessage : "Unknown error");
