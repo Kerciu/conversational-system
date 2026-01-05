@@ -16,7 +16,6 @@ function ChatPageContent() {
   const [isCreatingNew, setIsCreatingNew] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [isLoadingConversations, setIsLoadingConversations] = useState(true)
   const { toast } = useToast()
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId)
@@ -65,8 +64,6 @@ function ChatPageContent() {
           description: "Failed to load conversations",
           variant: "destructive",
         })
-      } finally {
-        setIsLoadingConversations(false)
       }
     }
 
@@ -182,17 +179,6 @@ function ChatPageContent() {
       })
     },
     [activeConversationId, toast, conversations],
-  )
-
-  const handleRenameConversation = useCallback(
-    (id: string, newTitle: string) => {
-      setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: newTitle } : c)))
-      toast({
-        title: "Conversation renamed",
-        description: `Renamed to "${newTitle}"`,
-      })
-    },
-    [toast],
   )
 
   const handleSendMessage = useCallback(
@@ -501,9 +487,7 @@ function ChatPageContent() {
         onNewConversation={handleNewConversation}
         onSelectConversation={handleSelectConversation}
         onDeleteConversation={handleDeleteConversation}
-        onRenameConversation={handleRenameConversation}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        isLoading={isLoadingConversations}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         {(activeConversation || isCreatingNew) && (
