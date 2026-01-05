@@ -53,7 +53,7 @@ function ChatPageContent() {
           conversationId: conv.id,
         }))
         setConversations(mappedConversations)
-        
+
         // If no active conversation is selected, show new conversation screen
         if (!activeConversationId) {
           setIsCreatingNew(true)
@@ -77,14 +77,14 @@ function ChatPageContent() {
   const loadConversationHistory = async (conversationId: string, agentType: AgentType) => {
     try {
       const history = await chatApi.getConversationHistory(conversationId, agentType)
-      
+
       const messages: Message[] = history.messages.map((msg, index) => ({
         id: `${conversationId}-msg-${index}`,
         role: msg.role as "user" | "assistant",
         content: msg.content,
         timestamp: new Date(),
-        type: msg.role === "user" 
-          ? "text" 
+        type: msg.role === "user"
+          ? "text"
           : agentType === "MODELER_AGENT" ? "model" : "code",
         agentType: agentType,
         canAccept: msg.role === "assistant",
@@ -111,12 +111,12 @@ function ChatPageContent() {
     setIsCreatingNew(false)
     setActiveConversationId(id)
     const conversation = conversations.find(c => c.id === id)
-    
+
     // Load history if not already loaded
     if (conversation && conversation.subChats[0].messages.length === 0 && conversation.conversationId) {
       const agentTypes: AgentType[] = ["MODELER_AGENT", "CODER_AGENT", "VISUALIZER_AGENT"]
       const loadedSubChats: SubChat[] = []
-      
+
       for (const agentType of agentTypes) {
         const messages = await loadConversationHistory(conversation.conversationId, agentType)
         if (messages.length > 0) {
@@ -126,7 +126,7 @@ function ChatPageContent() {
           })
         }
       }
-      
+
       // If there are no subchats, add an empty MODELER
       if (loadedSubChats.length === 0) {
         loadedSubChats.push({
@@ -134,7 +134,7 @@ function ChatPageContent() {
           messages: [],
         })
       }
-      
+
       // Mark last assistant message in each subchat (except last) as accepted
       for (let i = 0; i < loadedSubChats.length - 1; i++) {
         const lastAssistantMessage = loadedSubChats[i].messages.filter(m => m.role === "assistant").pop()
@@ -142,18 +142,18 @@ function ChatPageContent() {
           loadedSubChats[i].acceptedMessage = lastAssistantMessage
         }
       }
-      
+
       // Determine active subchat (last with messages or first)
       const activeIndex = Math.max(0, loadedSubChats.length - 1)
-      
+
       setConversations(prev =>
         prev.map(c =>
           c.id === id
             ? {
-                ...c,
-                subChats: loadedSubChats,
-                activeSubChatIndex: activeIndex,
-              }
+              ...c,
+              subChats: loadedSubChats,
+              activeSubChatIndex: activeIndex,
+            }
             : c
         )
       )
@@ -163,7 +163,7 @@ function ChatPageContent() {
   const handleDeleteConversation = useCallback(
     async (id: string) => {
       const conversation = conversations.find(c => c.id === id)
-      
+
       if (conversation?.conversationId) {
         try {
           await chatApi.deleteConversation(conversation.conversationId)
@@ -222,14 +222,14 @@ function ChatPageContent() {
           prev.map((c) =>
             c.id === currentConvId
               ? {
-                  ...c,
-                  subChats: c.subChats.map((subChat, idx) =>
-                    idx === c.activeSubChatIndex
-                      ? { ...subChat, messages: [...subChat.messages, userMessage] }
-                      : subChat
-                  ),
-                  updatedAt: new Date(),
-                }
+                ...c,
+                subChats: c.subChats.map((subChat, idx) =>
+                  idx === c.activeSubChatIndex
+                    ? { ...subChat, messages: [...subChat.messages, userMessage] }
+                    : subChat
+                ),
+                updatedAt: new Date(),
+              }
               : c
           )
         )
@@ -287,14 +287,14 @@ function ChatPageContent() {
           prev.map((c) =>
             c.id === currentConvId
               ? {
-                  ...c,
-                  subChats: c.subChats.map((subChat, idx) =>
-                    idx === c.activeSubChatIndex
-                      ? { ...subChat, messages: [...subChat.messages, aiMessage] }
-                      : subChat
-                  ),
-                  updatedAt: new Date(),
-                }
+                ...c,
+                subChats: c.subChats.map((subChat, idx) =>
+                  idx === c.activeSubChatIndex
+                    ? { ...subChat, messages: [...subChat.messages, aiMessage] }
+                    : subChat
+                ),
+                updatedAt: new Date(),
+              }
               : c
           )
         )
@@ -319,14 +319,14 @@ function ChatPageContent() {
           prev.map((c) =>
             c.id === currentConvId
               ? {
-                  ...c,
-                  subChats: c.subChats.map((subChat, idx) =>
-                    idx === c.activeSubChatIndex
-                      ? { ...subChat, messages: [...subChat.messages, errorMessage] }
-                      : subChat
-                  ),
-                  updatedAt: new Date(),
-                }
+                ...c,
+                subChats: c.subChats.map((subChat, idx) =>
+                  idx === c.activeSubChatIndex
+                    ? { ...subChat, messages: [...subChat.messages, errorMessage] }
+                    : subChat
+                ),
+                updatedAt: new Date(),
+              }
               : c
           )
         )
@@ -384,14 +384,14 @@ function ChatPageContent() {
           prev.map((c) =>
             c.id === conversationId
               ? {
-                  ...c,
-                  subChats: c.subChats.map((subChat, idx) =>
-                    idx === c.activeSubChatIndex
-                      ? { ...subChat, messages: [aiMessage] }
-                      : subChat
-                  ),
-                  updatedAt: new Date(),
-                }
+                ...c,
+                subChats: c.subChats.map((subChat, idx) =>
+                  idx === c.activeSubChatIndex
+                    ? { ...subChat, messages: [aiMessage] }
+                    : subChat
+                ),
+                updatedAt: new Date(),
+              }
               : c
           )
         )

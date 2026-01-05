@@ -7,7 +7,6 @@ import {
   Plus,
   MessageSquare,
   MoreHorizontal,
-  Pencil,
   Trash2,
   Settings,
   LogOut,
@@ -38,7 +37,6 @@ interface ChatSidebarProps {
   onSelectConversation: (id: string) => void
   onNewConversation: () => void
   onDeleteConversation: (id: string) => void
-  onRenameConversation: (id: string, newTitle: string) => void
   isCollapsed: boolean
   onToggleCollapse: () => void
 }
@@ -49,7 +47,6 @@ export function ChatSidebar({
   onSelectConversation,
   onNewConversation,
   onDeleteConversation,
-  onRenameConversation,
   isCollapsed,
   onToggleCollapse,
 }: ChatSidebarProps) {
@@ -61,8 +58,8 @@ export function ChatSidebar({
   const { logout } = useAuth()
   const router = useRouter()
 
-  const userInitials = (userName && userName !== "User") 
-    ? userName.slice(0, 2).toUpperCase() 
+  const userInitials = (userName && userName !== "User")
+    ? userName.slice(0, 2).toUpperCase()
     : "?";
   const filteredConversations = conversations.filter((conv) =>
     conv.title.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -70,24 +67,11 @@ export function ChatSidebar({
 
   const groupedConversations = groupConversations(filteredConversations)
 
-  const handleStartRename = (conv: Conversation) => {
-    setEditingId(conv.id)
-    setEditingTitle(conv.title)
-  }
-
-  const handleSaveRename = () => {
-    if (editingId && editingTitle.trim()) {
-      onRenameConversation(editingId, editingTitle.trim())
-    }
-    setEditingId(null)
-    setEditingTitle("")
-  }
-
   const handleLogout = () => {
     logout()
     router.push("/auth/login")
   }
-  
+
   useEffect(() => {
     const fetchUserData = async () => {
       const API_BASE = 'http://localhost:8080'
@@ -297,9 +281,7 @@ export function ChatSidebar({
                       <Input
                         value={editingTitle}
                         onChange={(e) => setEditingTitle(e.target.value)}
-                        onBlur={handleSaveRename}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveRename()
                           if (e.key === "Escape") {
                             setEditingId(null)
                             setEditingTitle("")
@@ -333,10 +315,6 @@ export function ChatSidebar({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuItem onClick={() => handleStartRename(conv)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Rename
-                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => onDeleteConversation(conv.id)}
                               className="text-destructive"
