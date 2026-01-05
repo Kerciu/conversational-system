@@ -20,30 +20,33 @@ class VisualizerAgent(Agent):
         context: str = "",
         conversation_history: List[Dict[str, Any]] = None,
         accepted_model: str = "",
-        accepted_code: str = "",
     ) -> dict:
         """
-        execution_output: CoderAgent's output (lub prompt od użytkownika)
+        execution_output: CoderAgent's code output
         context: original problem context for labeling
         job_id: id of the job for RabbbitMQ tracking
-        conversation_history: lista poprzednich wiadomości z konwersacji
-        accepted_model: zaakceptowany model matematyczny
-        accepted_code: zaakceptowany kod Python
+        conversation_history: previous messages in the conversation
+        accepted_model: the accepted mathematical model
         """
         print(f"[VisualizerAgent] Generating visualization code for job {job_id}")
         if conversation_history is None:
             conversation_history = []
 
         system_template = """Jesteś ekspertem od analizy i wizualizacji danych (Data Analysis Visualization) i biblioteki Matplotlib.
-Twój cel: Napisać krótki skrypt w Pythonie, który na podstawie tekstowych WYNIKÓW z solera wygeneruje plik z wykresem.
+Twój cel: 1.Napisać skrypt w Pythonie, który na podstawie tekstowych WYNIKÓW z solwera wygeneruje plik/pliki z wykresami.
+2. Napisać krótkie podsumowanie wyników problemu i wykresów w formacie markdown.
 
 Zasady:
 1. Przeanalizuj dostarczone 'WYNIKI URUCHOMIENIA KODU'. Wyciągnij z nich kluczowe liczby i nazwy zmiennych.
 2. Wybierz najlepszy typ wykresu (np. wykres słupkowy dla ilości produktów, kołowy dla udziałów, liniowy dla czasu).
 3. Użyj biblioteki 'matplotlib.pyplot'.
-4. Kod MUSI zapisywać wykres do pliku 'visualization.png' (użyj plt.savefig('visualization.png')).
+4. Kod MUSI zapisywać KAŻDY wykres do OSOBNEGO pliku png.
 5. NIE używaj plt.show() (kod będzie uruchamiany na serwerze bez ekranu).
 6. Podpisz osie i dodaj tytuł bazując na 'KONTEKŚCIE PROBLEMU'.
+7. Na początku napisz kod, następnie markdown z podsumowaniem wyników. Rozdziel te sekcje osobną linią o treści: "[MARKDOWN_RESULT_START]".
+8. W podsumowaniu zaznacz gdzie umieścić wygenerowane pliki, oznacz to poprzez osobną linię z treścią: "[FILE: filename.png]".
+9. Ułóż podsumowanie w taki sposób aby dało się automatycznie wstawić wykresy w odpowiednie miejsca.
+10. Wszystkie pliki zapisuj jako PNG.
 
 Zwróć TYLKO kod źródłowy Python, bez bloków markdown, gotowy do uruchomienia.
 
@@ -60,12 +63,6 @@ Jeśli zostanie dostarczona historia konwersacji, weź pod uwagę poprzednie wia
                 )
             )
 
-        # Dodaj zaakceptowany kod jako kontekst
-        if accepted_code:
-            messages.append(
-                HumanMessage(content=f"Zaakceptowany kod Python:\n\n{accepted_code}")
-            )
-
         # Dodanie poprzednich wiadomości z historii jako czysty tekst
         for msg in conversation_history:
             role = msg.get("role", "user")
@@ -79,7 +76,7 @@ Jeśli zostanie dostarczona historia konwersacji, weź pod uwagę poprzednie wia
         user_template = """=== KONTEKST PROBLEMU (do etykiet i tytułów) ===
 {context}
 
-=== WYNIKI URUCHOMIENIA KODU (dane do wykresu) ===
+=== WYNIKI URUCHOMIENIA KODU (dane do wykresów) ===
 {input}"""
 
         prompt_template = ChatPromptTemplate.from_messages(
