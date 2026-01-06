@@ -1,10 +1,13 @@
 from rabbitmq_config import connect_rabbitmq, RABBITMQ_IN_QUEUE
-from callback import callback
+from callback import callback, initialize_sandbox
 import pika
 import time
 
 
 def start_worker():
+    # Initialize sandbox on startup
+    initialize_sandbox()
+
     while True:
         try:
             _, channel = connect_rabbitmq()

@@ -3,36 +3,41 @@ from code_sandbox import CodeSandbox, CodeExecutionResult, ExecutionStatus
 from docker_manager import DockerManager
 import pika
 import json
-import sys
+import os
 
-try:
-    docker_manager = DockerManager()
+sandbox = None
 
-    if docker_manager.client:
-        # Use custom image with required libs (pulp, matplotlib, numpy). Fallback to base if not set.
-        import os
 
-        # Default to the Compose-built image name (service: sandbox-service → conversational-system-sandbox-service)
-        sandbox_image = os.getenv(
-            "SANDBOX_IMAGE", "conversational-system-sandbox-service"
-        )
+def initialize_sandbox():
+    """Initialize sandbox on demand."""
+    global sandbox
+    try:
+        docker_manager = DockerManager()
 
-        sandbox = CodeSandbox(
-            client=docker_manager.client,
-            image=sandbox_image,
-            timeout=10,
-            memory_limit="256m",
-            pids_limit=100,
-        )
-        print("Sandbox (CodeSandbox) initialized and ready to work.")
-    else:
-        raise RuntimeError("Docker client failed to initialize.")
+        if docker_manager.client:
+            # Use custom image with required libs (pulp, matplotlib, numpy)
+            # Default to the Compose-built image name
+            sandbox_image = os.getenv(
+                "SANDBOX_IMAGE", "conversational-system-sandbox-service"
+            )
 
-except Exception as e:
-    print(f"CRITICAL ERROR: Unable to initialize services: {e}")
-    print("Worker application will shut down.")
-    sandbox = None
-    sys.exit(1)
+            sandbox = CodeSandbox(
+                client=docker_manager.client,
+                image=sandbox_image,
+                timeout=10,
+                memory_limit="256m",
+                pids_limit=100,
+            )
+            print("Sandbox (CodeSandbox) initialized and ready to work.")
+            return True
+        else:
+            raise RuntimeError("Docker client failed to initialize.")
+
+    except Exception as e:
+        print(f"CRITICAL ERROR: Unable to initialize services: {e}")
+        sandbox = None
+        return False
+
 
 # ---------------------------------------------------------------------------
 # RabbitMQ Callback
@@ -40,6 +45,12 @@ except Exception as e:
 
 
 def callback(ch, method, properties, body):
+    global sandbox
+
+    # Initialize sandbox on first call if not already done
+    if sandbox is None:
+        initialize_sandbox()
+
     if sandbox is None:
         print("Error: Sandbox is not available. Rejecting task and not requeuing.")
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
