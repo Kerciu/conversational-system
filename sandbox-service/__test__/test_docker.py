@@ -83,7 +83,6 @@ class TestCodeSandboxIntegration:
 
     def test_sandbox_generated_image_file(self, real_sandbox):
         """Test that sandbox can generate and extract image files"""
-        import base64
 
         # Example code that generates a simple PNG file
         code = """
