@@ -45,6 +45,7 @@ jobs:
           RABBITMQ_HOST=localhost
           SPRING_REDIS_HOST=localhost
           AGENT_SERVICE_PORT=3721
+          GOOGLE_API_KEY=dummy_key
           SANDBOX_SERVICE_PORT=2137
           DOCKER_SOCK_PATH=/var/run/docker.sock
           EOF

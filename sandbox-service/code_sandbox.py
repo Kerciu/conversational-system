@@ -31,7 +31,8 @@ class CodeExecutionResult:
         }
         if self.generated_files:
             result["generatedFiles"] = {
-                name: base64.b64encode(data).decode() for name, data in self.generated_files.items()
+                name: base64.b64encode(data).decode()
+                for name, data in self.generated_files.items()
             }
         return result
 
