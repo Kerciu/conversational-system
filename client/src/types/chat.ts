@@ -5,11 +5,12 @@ export interface Message {
   role: "user" | "assistant"
   content: string
   timestamp: Date
-  type?: "text" | "code" | "model" | "action"
+  type?: "text" | "code" | "model" | "action" | "visualization"
   codeLanguage?: string
   actions?: { label: string; variant: "primary" | "secondary" }[]
   agentType?: AgentType
   canAccept?: boolean
+  generatedFiles?: { [filename: string]: string } // Base64-encoded files for visualization
 }
 
 export interface SubChat {

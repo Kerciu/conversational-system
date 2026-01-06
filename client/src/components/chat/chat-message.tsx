@@ -1,7 +1,7 @@
 "use client"
 
 import { User, Bot, Copy, Check } from "lucide-react"
-import { useState } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import type { Message } from "@/types/chat"
@@ -20,6 +20,67 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message, onAction }: ChatMessageProps) {
   const [copied, setCopied] = useState(false)
+
+  // Memoize blob URLs and split content for visualization
+  const { blobUrls, contentParts } = useMemo(() => {
+    if (message.type !== "visualization" || !message.generatedFiles) {
+      return { blobUrls: {}, contentParts: [{ type: 'text' as const, content: message.content }] }
+    }
+
+    const urls: { [filename: string]: string } = {}
+
+    // Convert each base64 image to a blob URL
+    Object.entries(message.generatedFiles).forEach(([filename, base64Data]) => {
+      try {
+        const binaryString = atob(base64Data)
+        const bytes = new Uint8Array(binaryString.length)
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i)
+        }
+        const blob = new Blob([bytes], { type: 'image/png' })
+        urls[filename] = URL.createObjectURL(blob)
+      } catch (e) {
+        console.error(`Failed to create blob for ${filename}:`, e)
+      }
+    })
+
+    // Split content into text and image parts
+    const parts: Array<{ type: 'text' | 'image', content: string, filename?: string }> = []
+    let lastIndex = 0
+    const regex = /\[FILE:\s*([^\]]+)\]/g
+    let match
+
+    while ((match = regex.exec(message.content)) !== null) {
+      // Add text before this match
+      if (match.index > lastIndex) {
+        parts.push({ type: 'text', content: message.content.substring(lastIndex, match.index) })
+      }
+
+      // Add image
+      const filename = match[1].trim()
+      if (urls[filename]) {
+        parts.push({ type: 'image', content: urls[filename], filename })
+      } else {
+        parts.push({ type: 'text', content: match[0] })
+      }
+
+      lastIndex = regex.lastIndex
+    }
+
+    // Add remaining text
+    if (lastIndex < message.content.length) {
+      parts.push({ type: 'text', content: message.content.substring(lastIndex) })
+    }
+
+    return { blobUrls: urls, contentParts: parts }
+  }, [message.content, message.generatedFiles, message.type])
+
+  // Cleanup blob URLs when component unmounts or files change
+  useEffect(() => {
+    return () => {
+      Object.values(blobUrls).forEach(url => URL.revokeObjectURL(url))
+    }
+  }, [blobUrls])
   const isUser = message.role === "user"
 
   const handleCopy = async () => {
@@ -48,6 +109,47 @@ export function ChatMessage({ message, onAction }: ChatMessageProps) {
               <pre className="overflow-x-auto rounded-lg bg-background/50 p-3 text-sm">
                 <code>{message.content}</code>
               </pre>
+            </div>
+          ) : message.type === "visualization" ? (
+            <div className="prose prose-invert prose-sm max-w-none [&_pre]:bg-background/50 [&_pre]:p-3 [&_pre]:rounded-lg [&_code]:text-sm">
+              {contentParts.map((part, index) => {
+                if (part.type === 'image') {
+                  return (
+                    // Blobs are dynamic and wont work good with Image component
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={index}
+                      src={part.content}
+                      alt={part.filename || 'Generated visualization'}
+                      className="max-w-full h-auto rounded-lg shadow-lg my-4 mx-auto"
+                    />
+                  )
+                }
+
+                return (
+                  <ReactMarkdown
+                    key={index}
+                    remarkPlugins={[remarkMath, remarkGfm]}
+                    rehypePlugins={[rehypeKatex]}
+                    components={{
+                      p: ({ children }) => <p className="leading-relaxed mb-4 last:mb-0">{children}</p>,
+                      h1: ({ children }) => <h1 className="text-xl font-bold mt-6 mb-3 text-primary">{children}</h1>,
+                      h2: ({ children }) => <h2 className="text-lg font-bold mt-5 mb-2 text-primary/90">{children}</h2>,
+                      h3: ({ children }) => <h3 className="text-base font-semibold mt-4 mb-2 text-foreground">{children}</h3>,
+                      ul: ({ children }) => <ul className="list-disc pl-5 mb-4 space-y-1">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal pl-5 mb-4 space-y-1">{children}</ol>,
+                      li: ({ children }) => <li className="pl-1">{children}</li>,
+                      strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
+                      // @ts-expect-error: react-katex does not have type definitions
+                      math: ({ value }) => <div className="overflow-x-auto my-4 flex justify-center"><BlockMath math={value} /></div>,
+                      // @ts-expect-error: react-katex does not have type definitions
+                      inlineMath: ({ value }) => <InlineMath math={value} />,
+                    }}
+                  >
+                    {part.content}
+                  </ReactMarkdown>
+                )
+              })}
             </div>
           ) : message.type === "model" ? (
             <div className="prose prose-invert prose-sm max-w-none [&_pre]:bg-background/50 [&_pre]:p-3 [&_pre]:rounded-lg [&_code]:text-sm">

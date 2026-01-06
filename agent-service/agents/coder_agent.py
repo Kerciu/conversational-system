@@ -37,6 +37,12 @@ class CoderAgent(Agent):
         4. Rozwiązywać problem (solver).
         5. Wypisywać wynik na standardowe wyjście (print).
         
+        WAŻNE - Przy sprawdzaniu statusu solwera w PuLP:
+        - Prawidłowo: if pulp.LpStatus[prob.status] == "Optimal": 
+        - LUB: from pulp import PULP_CBC_CMD, LpStatusOptimal; if prob.status == LpStatusOptimal:
+        - Źle: pulp.LpStatus.Optimal (to jest dict, nie ma atrybutu)
+        - Prawidłowy print wyniku: print(f"Status: {pulp.LpStatus[prob.status]}")
+        
         Zwróć TYLKO kod źródłowy, bez bloków markdown (```python), czysty tekst gotowy do zapisu w pliku .py.
         
         Jeśli zostanie dostarczona historia konwersacji, weź pod uwagę poprzednie wiadomości i kontekst.

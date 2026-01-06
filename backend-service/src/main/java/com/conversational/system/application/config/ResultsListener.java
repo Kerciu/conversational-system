@@ -33,9 +33,25 @@ public class ResultsListener {
         if (payload instanceof Map) {
             @SuppressWarnings("unchecked")
             Map<String, Object> payloadMap = (Map<String, Object>) payload;
-            Object content = payloadMap.get("content");
-            if (content != null) {
-                answer = content.toString();
+
+            // Check if this is a visualization report with generated files
+            Object type = payloadMap.get("type");
+            if ("visualization_report".equals(type)) {
+                // For visualization, store the entire payload as JSON (includes content +
+                // generated_files)
+                try {
+                    answer = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payloadMap);
+                } catch (Exception e) {
+                    System.err.println("Failed to serialize visualization payload: " + e.getMessage());
+                    Object content = payloadMap.get("content");
+                    answer = content != null ? content.toString() : "No answer available";
+                }
+            } else {
+                // For other types (model, code), just use content
+                Object content = payloadMap.get("content");
+                if (content != null) {
+                    answer = content.toString();
+                }
             }
         }
 

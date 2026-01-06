@@ -75,17 +75,36 @@ function ChatPageContent() {
     try {
       const history = await chatApi.getConversationHistory(conversationId, agentType)
 
-      const messages: Message[] = history.messages.map((msg) => ({
-        id: msg.id,
-        role: msg.role as "user" | "assistant",
-        content: msg.content,
-        timestamp: new Date(),
-        type: msg.role === "user"
-          ? "text"
-          : agentType === "MODELER_AGENT" ? "model" : "code",
-        agentType: agentType,
-        canAccept: msg.role === "assistant",
-      }))
+      const messages: Message[] = history.messages.map((msg) => {
+        let messageContent = msg.content
+        let messageType: Message["type"] = msg.role === "user" ? "text" : agentType === "MODELER_AGENT" ? "model" : "code"
+        let generatedFiles: { [filename: string]: string } | undefined = undefined
+
+        // Try to parse as visualization report
+        if (msg.role === "assistant" && agentType === "VISUALIZER_AGENT") {
+          try {
+            const parsed = JSON.parse(msg.content)
+            if (parsed.type === "visualization_report") {
+              messageContent = parsed.content || ""
+              generatedFiles = parsed.generated_files || {}
+              messageType = "visualization"
+            }
+          } catch {
+            // JSON parse failed - content is plain text, use as-is (expected for non-visualization messages)
+          }
+        }
+
+        return {
+          id: msg.id,
+          role: msg.role as "user" | "assistant",
+          content: messageContent,
+          timestamp: new Date(),
+          type: messageType,
+          agentType: agentType,
+          canAccept: msg.role === "assistant",
+          generatedFiles,
+        }
+      })
 
       return messages
     } catch (error) {
@@ -257,15 +276,30 @@ function ChatPageContent() {
           console.log(`Job ${jobId} status:`, status.status)
         })
 
+        // Parse answer - if it's a visualization report, extract content and files
+        let messageContent = result.answer || "Job completed but no answer received."
+        let generatedFiles: { [filename: string]: string } | undefined = undefined
+
+        try {
+          const parsed = JSON.parse(result.answer || "{}")
+          if (parsed.type === "visualization_report") {
+            messageContent = parsed.content || ""
+            generatedFiles = parsed.generated_files || {}
+          }
+        } catch {
+          // Not JSON or parsing failed, use answer as-is
+        }
+
         // Create AI message with the result
         const aiMessage: Message = {
           id: result.messageId || generateId(), // Use messageId from backend or fallback
           role: "assistant",
-          content: result.answer || "Job completed but no answer received.",
+          content: messageContent,
           timestamp: new Date(),
-          type: agentType === "MODELER_AGENT" ? "model" : "code",
+          type: agentType === "MODELER_AGENT" ? "model" : agentType === "VISUALIZER_AGENT" ? "visualization" : "code",
           agentType,
           canAccept: true,
+          generatedFiles, // Add generated files for visualization
         }
 
         setConversations((prev) =>
@@ -354,15 +388,30 @@ function ChatPageContent() {
           console.log(`Job ${jobId} status:`, status.status)
         })
 
+        // Parse answer - if it's a visualization report, extract content and files
+        let messageContent = result.answer || "Job completed but no answer received."
+        let generatedFiles: { [filename: string]: string } | undefined = undefined
+
+        try {
+          const parsed = JSON.parse(result.answer || "{}")
+          if (parsed.type === "visualization_report") {
+            messageContent = parsed.content || ""
+            generatedFiles = parsed.generated_files || {}
+          }
+        } catch {
+          // Not JSON or parsing failed, use answer as-is
+        }
+
         // Create AI message with the result - use messageId from backend
         const aiMessage: Message = {
           id: result.messageId || generateId(), // Use messageId from backend or fallback
           role: "assistant",
-          content: result.answer || "Job completed but no answer received.",
+          content: messageContent,
           timestamp: new Date(),
-          type: agentType === "MODELER_AGENT" ? "model" : "code",
+          type: agentType === "MODELER_AGENT" ? "model" : agentType === "VISUALIZER_AGENT" ? "visualization" : "code",
           agentType,
           canAccept: true,
+          generatedFiles, // Add generated files for visualization
         }
 
         setConversations((prev) =>
