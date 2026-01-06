@@ -111,7 +111,7 @@ def create_minimal_png():
     return header + ihdr_chunk + idat_chunk + iend_chunk
 
 png_data = create_minimal_png()
-with open('test_image.png', 'wb') as f:
+with open('/output/test_image.png', 'wb') as f:
     f.write(png_data)
 print('Generated test_image.png')
 """
@@ -122,13 +122,12 @@ print('Generated test_image.png')
         assert result.generated_files is not None
         assert "test_image.png" in result.generated_files
 
-        # Verify file is base64 encoded
-        png_base64 = result.generated_files["test_image.png"]
-        assert isinstance(png_base64, str)
+        # Verify file is valid PNG bytes
+        png_bytes = result.generated_files["test_image.png"]
+        assert isinstance(png_bytes, bytes)
 
-        # Decode and verify it's valid PNG data
-        png_data = base64.b64decode(png_base64)
-        assert png_data.startswith(b"\x89PNG\r\n\x1a\n"), "Invalid PNG header"
+        # Verify it's valid PNG data
+        assert png_bytes.startswith(b"\x89PNG\r\n\x1a\n"), "Invalid PNG header"
 
 
 def test_code_execution_result_to_dict():
