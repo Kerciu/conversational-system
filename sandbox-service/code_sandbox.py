@@ -7,6 +7,7 @@ import os
 import uuid
 import tarfile
 import io
+import base64
 
 
 class ExecutionStatus(enum.Enum):
@@ -30,7 +31,7 @@ class CodeExecutionResult:
         }
         if self.generated_files:
             result["generatedFiles"] = {
-                name: data.hex() for name, data in self.generated_files.items()
+                name: base64.b64encode(data).decode() for name, data in self.generated_files.items()
             }
         return result
 
