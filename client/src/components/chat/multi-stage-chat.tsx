@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { ChatMessage } from "./chat-message"
 import { ChatInput } from "./chat-input"
 import { EmptyState } from "./empty-state"
+import { LoadingMessage } from "./loading-message"
 import { type Message, type SubChat, type AgentType } from "@/types/chat"
 import { Check, ChevronLeft, ChevronRight } from "lucide-react"
 
@@ -16,6 +17,7 @@ interface MultiStageChatProps {
   onAcceptMessage: (agentType: AgentType, message: Message) => void
   onNavigateToSubChat: (index: number) => void
   isLoading?: boolean
+  onMessageAction?: (message: Message, action: string) => void
 }
 
 const AGENT_LABELS: Record<AgentType, string> = {
@@ -38,15 +40,17 @@ export function MultiStageChat({
   onAcceptMessage,
   onNavigateToSubChat,
   isLoading = false,
+  onMessageAction,
 }: MultiStageChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const activeSubChat = subChats[activeSubChatIndex]
   const activeAgentType = activeSubChat?.agentType || "MODELER_AGENT"
+  const displayedMessages = (activeSubChat?.messages || []).filter(m => !isLoading || !m.retry)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [activeSubChat?.messages])
+  }, [activeSubChat?.messages, isLoading])
 
   const handleSend = (message: string) => {
     if (message.trim() && !isLoading) {
@@ -94,19 +98,22 @@ export function MultiStageChat({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto">{activeSubChat?.messages.length === 0 ? (
-          <EmptyState />
+      <div className="flex-1 overflow-y-auto">
+        {activeSubChat?.messages.length === 0 && !isLoading ? (
+          <EmptyState onSelectPrompt={function (prompt: string): void {
+            throw new Error("Function not implemented.")
+          }} />
         ) : (
           <div className="max-w-4xl mx-auto space-y-4 p-6">
-            {activeSubChat?.messages.map((message, index) => {
+            {displayedMessages.map((message, index) => {
               const isLatestAssistant =
                 message.role === "assistant" &&
-                index === activeSubChat.messages.length - 1 &&
+                index === displayedMessages.length - 1 &&
                 !activeSubChat.acceptedMessage
 
               return (
                 <div key={message.id}>
-                  <ChatMessage message={message} />
+                  <ChatMessage message={message} onAction={(action) => onMessageAction?.(message, action)} />
                   {isLatestAssistant && message.canAccept && (
                     <div className="mt-4 flex justify-end">
                       <Button
@@ -124,6 +131,7 @@ export function MultiStageChat({
                 </div>
               )
             })}
+            {isLoading && <LoadingMessage />}
             <div ref={messagesEndRef} />
           </div>
         )}

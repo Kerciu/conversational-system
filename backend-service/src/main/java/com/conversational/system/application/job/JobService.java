@@ -22,6 +22,8 @@ public class JobService {
     private final ConversationService conversationService;
     private final Map<String, Map<String, String>> jobResults = new ConcurrentHashMap<>();
     private final Map<String, UUID> jobToConversationMap = new ConcurrentHashMap<>();
+    private final Map<UUID, String> conversationToActiveJobMap = new ConcurrentHashMap<>();
+    private final Map<UUID, String> conversationToLastTerminalStatus = new ConcurrentHashMap<>();
 
     @Value("${app.queue.code.request}")
     private String requestQueueName;
@@ -46,6 +48,9 @@ public class JobService {
         }
 
         jobToConversationMap.put(jobDescriptionDto.getJobId(), conversationId);
+        conversationToActiveJobMap.put(conversationId, jobDescriptionDto.getJobId());
+        // New job starts: clear last terminal status
+        conversationToLastTerminalStatus.remove(conversationId);
 
         conversationService.saveUserMessage(
                 conversationId,
@@ -114,5 +119,40 @@ public class JobService {
             result.put("messageId", messageId);
         }
         jobResults.put(jobId, result);
+
+        // Remove from active jobs when terminal (completed or error/failed)
+        if ("completed".equals(status) || "failed".equals(status) || "error".equals(status)) {
+            UUID conversationId = jobToConversationMap.get(jobId);
+            if (conversationId != null) {
+                conversationToActiveJobMap.remove(conversationId);
+                // Record last terminal status for the conversation
+                conversationToLastTerminalStatus.put(conversationId, status);
+            }
+        }
+    }
+
+    public boolean hasActiveJob(UUID conversationId) {
+        String activeJobId = conversationToActiveJobMap.get(conversationId);
+        if (activeJobId == null) {
+            return false;
+        }
+
+        // Check if job is still pending
+        Map<String, String> jobStatus = jobResults.get(activeJobId);
+        if (jobStatus == null) {
+            return false;
+        }
+
+        String status = jobStatus.get("status");
+        return "pending".equals(status);
+    }
+
+    public String getActiveJobId(UUID conversationId) {
+        return conversationToActiveJobMap.get(conversationId);
+    }
+
+    public boolean hasLastError(UUID conversationId) {
+        String last = conversationToLastTerminalStatus.get(conversationId);
+        return "failed".equals(last) || "error".equals(last);
     }
 }

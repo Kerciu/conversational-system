@@ -11,6 +11,14 @@ export interface Message {
   agentType?: AgentType
   canAccept?: boolean
   generatedFiles?: { [filename: string]: string } // Base64-encoded files for visualization
+  retry?: {
+    mode: "send" | "auto"
+    agentType: AgentType
+    prompt: string
+    conversationId?: string
+    acceptedModelMessageId?: string
+    acceptedCodeMessageId?: string
+  }
 }
 
 export interface SubChat {
@@ -33,6 +41,7 @@ export interface Conversation {
   acceptedModelMessageId?: string
   acceptedCodeMessageId?: string
   codeExecutionResult?: string
+  isLoading?: boolean
 }
 
 export type ConversationGroup = "today" | "yesterday" | "last7days" | "last30days" | "older"

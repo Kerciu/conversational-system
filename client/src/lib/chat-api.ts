@@ -72,30 +72,55 @@ export const chatApi = {
     return response.json()
   },
 
-  pollJobStatus: async (
+  // Cancellable variant: returns a cancel() handle and a promise
+  pollJobStatusCancellable: (
     jobId: string,
     onUpdate: (status: JobStatusResponse) => void,
     intervalMs: number = 1000
-  ): Promise<JobStatusResponse> => {
-    return new Promise((resolve, reject) => {
-      const pollInterval = setInterval(async () => {
+  ): { promise: Promise<JobStatusResponse>; cancel: () => void } => {
+    let interval: ReturnType<typeof setInterval> | null = null
+    let settled = false
+
+    const cancel = () => {
+      if (interval) {
+        clearInterval(interval)
+        interval = null
+      }
+    }
+
+    const promise = new Promise<JobStatusResponse>((resolve, reject) => {
+      interval = setInterval(async () => {
         try {
           const status = await chatApi.getJobStatus(jobId)
           onUpdate(status)
 
           if (status.status === "completed") {
-            clearInterval(pollInterval)
-            resolve(status)
+            if (interval) clearInterval(interval)
+            interval = null
+            if (!settled) {
+              settled = true
+              resolve(status)
+            }
           } else if (status.status === "error") {
-            clearInterval(pollInterval)
-            reject(new Error(status.message || "Job failed"))
+            if (interval) clearInterval(interval)
+            interval = null
+            if (!settled) {
+              settled = true
+              reject(new Error(status.message || "Job failed"))
+            }
           }
         } catch (error) {
-          clearInterval(pollInterval)
-          reject(error)
+          if (interval) clearInterval(interval)
+          interval = null
+          if (!settled) {
+            settled = true
+            reject(error as Error)
+          }
         }
       }, intervalMs)
     })
+
+    return { promise, cancel }
   },
 
   // Conversation management
@@ -134,5 +159,18 @@ export const chatApi = {
     if (!response.ok) {
       throw new Error(`Failed to delete conversation: ${response.statusText}`)
     }
+  },
+
+  getConversationStatus: async (conversationId: string): Promise<{ conversationId: string; isLoading: boolean; hadError: boolean; jobId?: string }> => {
+    const response = await fetch(`${CONVERSATIONS_API}/${conversationId}/status`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch conversation status: ${response.statusText}`)
+    }
+
+    return response.json()
   },
 }

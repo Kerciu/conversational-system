@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { ChatSidebar } from "@/components/chat/chat-sidebar"
 import { MultiStageChat } from "@/components/chat/multi-stage-chat"
 import { generateId } from "@/lib/chat-utils"
@@ -14,11 +14,11 @@ function ChatPageContent() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
   const [isCreatingNew, setIsCreatingNew] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const { toast } = useToast()
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId)
+  const activePollCancelRef = useRef<null | (() => void)>(null)
 
   // Initialize new conversation with MODELER subchat
   const createNewConversation = (initialMessage?: Message): Conversation => {
@@ -70,6 +70,8 @@ function ChatPageContent() {
     loadConversations()
   }, [toast])
 
+  // Removed generic conversation-status polling. We'll poll by jobId when needed.
+
   // Load conversation history when selecting a conversation
   const loadConversationHistory = async (conversationId: string, agentType: AgentType) => {
     try {
@@ -119,17 +121,60 @@ function ChatPageContent() {
   }
 
   const handleNewConversation = useCallback(() => {
+    // Cancel any ongoing polling when leaving current conversation
+    if (activePollCancelRef.current) {
+      activePollCancelRef.current()
+      activePollCancelRef.current = null
+    }
     setActiveConversationId(null)
     setIsCreatingNew(true)
   }, [])
 
   const handleSelectConversation = useCallback(async (id: string) => {
+    // Cancel any ongoing polling when switching conversations
+    if (activePollCancelRef.current) {
+      activePollCancelRef.current()
+      activePollCancelRef.current = null
+    }
     setIsCreatingNew(false)
     setActiveConversationId(id)
     const conversation = conversations.find(c => c.id === id)
 
+    // Check loading status from backend if conversation has backend ID
+    let pendingJobId: string | undefined = undefined
+    let refreshAfterIdle = false
+    let hadErrorFlag = false
+    if (conversation?.conversationId) {
+      try {
+        const prevIsLoading = !!conversation.isLoading
+        const status = await chatApi.getConversationStatus(conversation.conversationId)
+        if (status.isLoading) {
+          pendingJobId = status.jobId
+          setConversations(prev =>
+            prev.map(c =>
+              c.id === id ? { ...c, isLoading: true } : c
+            )
+          )
+        } else {
+          // Ensure not loading if backend says idle
+          setConversations(prev => prev.map(c => c.id === id ? { ...c, isLoading: false } : c))
+          // If we were previously loading but now idle, refresh to capture new messages
+          if (prevIsLoading) {
+            refreshAfterIdle = true
+          }
+          if (status.hadError) {
+            hadErrorFlag = true
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch conversation status:", error)
+      }
+    }
+
     // Load history if not already loaded
-    if (conversation && conversation.subChats[0].messages.length === 0 && conversation.conversationId) {
+    let appendActiveIndex = conversation?.activeSubChatIndex ?? 0
+    const needsInitialLoad = !!(conversation && conversation.subChats[0].messages.length === 0 && conversation.conversationId)
+    if (needsInitialLoad && conversation && conversation.conversationId) {
       const agentTypes: AgentType[] = ["MODELER_AGENT", "CODER_AGENT", "VISUALIZER_AGENT"]
       const loadedSubChats: SubChat[] = []
 
@@ -161,6 +206,7 @@ function ChatPageContent() {
 
       // Determine active subchat (last with messages or first)
       const activeIndex = Math.max(0, loadedSubChats.length - 1)
+      appendActiveIndex = activeIndex
 
       setConversations(prev =>
         prev.map(c =>
@@ -173,6 +219,166 @@ function ChatPageContent() {
             : c
         )
       )
+    }
+
+    // If job completed while away, refresh history to capture new messages
+    if (refreshAfterIdle && conversation?.conversationId && !needsInitialLoad) {
+      const agentTypes: AgentType[] = ["MODELER_AGENT", "CODER_AGENT", "VISUALIZER_AGENT"]
+      const loadedSubChats: SubChat[] = []
+      for (const agentType of agentTypes) {
+        const messages = await loadConversationHistory(conversation.conversationId, agentType)
+        if (messages.length > 0) {
+          loadedSubChats.push({ agentType, messages })
+        }
+      }
+      if (loadedSubChats.length === 0) {
+        loadedSubChats.push({ agentType: "MODELER_AGENT", messages: [] })
+      }
+      for (let i = 0; i < loadedSubChats.length - 1; i++) {
+        const lastAssistantMessage = loadedSubChats[i].messages.filter(m => m.role === "assistant").pop()
+        if (lastAssistantMessage) {
+          loadedSubChats[i].acceptedMessage = lastAssistantMessage
+        }
+      }
+      const activeIndex = Math.max(0, loadedSubChats.length - 1)
+      appendActiveIndex = activeIndex
+      setConversations(prev => prev.map(c => c.id === id ? { ...c, subChats: loadedSubChats, activeSubChatIndex: activeIndex } : c))
+    }
+
+    // If last job ended with error, show an error bubble with Retry on the active stage
+    if (hadErrorFlag && conversation?.conversationId) {
+      const agentTypes: AgentType[] = ["MODELER_AGENT", "CODER_AGENT", "VISUALIZER_AGENT"]
+      // Ensure history is present to know active index
+      if (needsInitialLoad) {
+        // History already loaded above; appendActiveIndex reflects active
+      }
+      setConversations(prev => prev.map(c => {
+        if (c.id !== id) return c
+        const activeIdx = c.activeSubChatIndex ?? appendActiveIndex
+        const agentType: AgentType = c.subChats[activeIdx]?.agentType || "MODELER_AGENT"
+        const errorMessage: Message = {
+          id: generateId(),
+          role: "assistant",
+          content: "The last run failed. You can retry.",
+          timestamp: new Date(),
+          type: "text",
+          agentType,
+          actions: [{ label: "Retry", variant: "primary" }],
+          retry: {
+            mode: "auto",
+            agentType,
+            prompt: " ",
+            conversationId: c.conversationId,
+            acceptedModelMessageId: c.acceptedModelMessageId,
+            acceptedCodeMessageId: c.acceptedCodeMessageId,
+          }
+        }
+        // Avoid duplicating consecutive error-with-retry if already last
+        const currentMessages = c.subChats[activeIdx]?.messages || []
+        const lastMsg = currentMessages[currentMessages.length - 1]
+        if (lastMsg && lastMsg.retry) {
+          return c
+        }
+        return {
+          ...c,
+          subChats: c.subChats.map((subChat, idx) =>
+            idx === activeIdx ? { ...subChat, messages: [...subChat.messages, errorMessage] } : subChat
+          ),
+          updatedAt: new Date(),
+        }
+      }))
+    }
+
+    // If there is a pending job for this conversation, poll by jobId and append result
+    if (pendingJobId) {
+      try {
+        const { promise, cancel } = chatApi.pollJobStatusCancellable(pendingJobId, () => { })
+        activePollCancelRef.current = cancel
+        const result = await promise
+
+        // Build and append AI message using current conversation state for accuracy
+        setConversations(prev => prev.map(c => {
+          if (c.id !== id) return c
+          const activeIdx = c.activeSubChatIndex ?? appendActiveIndex
+          const agentType: AgentType = c.subChats[activeIdx]?.agentType || "MODELER_AGENT"
+
+          let messageContent = result.answer || "Job completed but no answer received."
+          let generatedFiles: { [filename: string]: string } | undefined = undefined
+          try {
+            const parsed: unknown = JSON.parse(result.answer || "{}")
+            if (typeof parsed === "object" && parsed !== null) {
+              const o = parsed as Record<string, unknown>
+              if (typeof o.type === "string" && o.type === "visualization_report") {
+                messageContent = typeof o.content === "string" ? o.content : ""
+                const files = o.generated_files
+                if (files && typeof files === "object") {
+                  generatedFiles = files as Record<string, string>
+                } else {
+                  generatedFiles = {}
+                }
+              }
+            }
+          } catch { }
+
+          const aiMessage: Message = {
+            id: result.messageId || generateId(),
+            role: "assistant",
+            content: messageContent,
+            timestamp: new Date(),
+            type: agentType === "MODELER_AGENT" ? "model" : agentType === "VISUALIZER_AGENT" ? "visualization" : "code",
+            agentType,
+            canAccept: true,
+            generatedFiles,
+          }
+
+          return {
+            ...c,
+            isLoading: false,
+            subChats: c.subChats.map((subChat, idx) =>
+              idx === activeIdx ? { ...subChat, messages: [...subChat.messages, aiMessage] } : subChat
+            ),
+            updatedAt: new Date(),
+          }
+        }))
+
+        if (activePollCancelRef.current === cancel) {
+          activePollCancelRef.current = null
+        }
+      } catch (error) {
+        console.error("Failed to poll pending job:", error)
+        // Append an assistant error message with Retry, targeting the active subchat
+        setConversations(prev => prev.map(c => {
+          if (c.id !== id) return c
+          const activeIdx = c.activeSubChatIndex ?? appendActiveIndex
+          const agentType: AgentType = c.subChats[activeIdx]?.agentType || "MODELER_AGENT"
+          const errorMessage: Message = {
+            id: generateId(),
+            role: "assistant",
+            content: "Generation failed while loading this stage. You can retry.",
+            timestamp: new Date(),
+            type: "text",
+            agentType,
+            actions: [{ label: "Retry", variant: "primary" }],
+            retry: {
+              mode: "auto",
+              agentType,
+              prompt: " ",
+              conversationId: c.id,
+              acceptedModelMessageId: c.acceptedModelMessageId,
+              acceptedCodeMessageId: c.acceptedCodeMessageId,
+            }
+          }
+          return {
+            ...c,
+            isLoading: false,
+            subChats: c.subChats.map((subChat, idx) =>
+              idx === activeIdx ? { ...subChat, messages: [...subChat.messages, errorMessage] } : subChat
+            ),
+            updatedAt: new Date(),
+          }
+        }))
+        activePollCancelRef.current = null
+      }
     }
   }, [conversations])
 
@@ -240,7 +446,12 @@ function ChatPageContent() {
         )
       }
 
-      setIsLoading(true)
+      // Set loading for this conversation
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === currentConvId ? { ...c, isLoading: true } : c
+        )
+      )
 
       try {
         // Get current conversation for context
@@ -272,9 +483,12 @@ function ChatPageContent() {
         }
 
         // Poll for job status
-        const result = await chatApi.pollJobStatus(jobId, (status) => {
+        const { promise, cancel } = chatApi.pollJobStatusCancellable(jobId, (status) => {
           console.log(`Job ${jobId} status:`, status.status)
         })
+        // Track cancel handle for this active poll
+        activePollCancelRef.current = cancel
+        const result = await promise
 
         // Parse answer - if it's a visualization report, extract content and files
         let messageContent = result.answer || "Job completed but no answer received."
@@ -328,10 +542,16 @@ function ChatPageContent() {
         const errorMessage: Message = {
           id: generateId(),
           role: "assistant",
-          content: "Sorry, I encountered an error processing your request. Please try again.",
+          content: "Something went wrong while generating a response. You can retry.",
           timestamp: new Date(),
           type: "text",
           agentType,
+          actions: [{ label: "Retry", variant: "primary" }],
+          retry: {
+            mode: "send",
+            agentType,
+            prompt: content,
+          }
         }
 
         setConversations((prev) =>
@@ -350,7 +570,13 @@ function ChatPageContent() {
           )
         )
       } finally {
-        setIsLoading(false)
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === currentConvId ? { ...c, isLoading: false } : c
+          )
+        )
+        // Clear cancel ref on settle
+        activePollCancelRef.current = null
       }
     },
     [activeConversationId, activeConversation, toast, conversations],
@@ -358,7 +584,7 @@ function ChatPageContent() {
 
   const handleAutoGenerate = useCallback(
     async (agentType: AgentType, conversationId: string, acceptedModelMessageId?: string, acceptedCodeMessageId?: string) => {
-      setIsLoading(true)
+      // isLoading is already set to true in handleAcceptMessage
 
       try {
         const conversation = conversations.find(c => c.id === conversationId)
@@ -384,9 +610,11 @@ function ChatPageContent() {
         const jobId = submitResponse.jobId
 
         // Poll for job status
-        const result = await chatApi.pollJobStatus(jobId, (status) => {
+        const { promise, cancel } = chatApi.pollJobStatusCancellable(jobId, (status) => {
           console.log(`Job ${jobId} status:`, status.status)
         })
+        activePollCancelRef.current = cancel
+        const result = await promise
 
         // Parse answer - if it's a visualization report, extract content and files
         let messageContent = result.answer || "Job completed but no answer received."
@@ -436,12 +664,50 @@ function ChatPageContent() {
           description: error instanceof Error ? error.message : "Failed to generate",
           variant: "destructive",
         })
+        // Show an assistant error message in the active subchat with Retry
+        const errorMessage: Message = {
+          id: generateId(),
+          role: "assistant",
+          content: "Generation failed at this stage. You can retry.",
+          timestamp: new Date(),
+          type: "text",
+          agentType,
+          actions: [{ label: "Retry", variant: "primary" }],
+          retry: {
+            mode: "auto",
+            agentType,
+            prompt: " ",
+            conversationId,
+            acceptedModelMessageId,
+            acceptedCodeMessageId,
+          }
+        }
+        setConversations(prev => prev.map(c => c.id === conversationId ? {
+          ...c,
+          subChats: c.subChats.map((subChat, idx) => idx === c.activeSubChatIndex ? { ...subChat, messages: [...subChat.messages, errorMessage] } : subChat),
+          updatedAt: new Date(),
+        } : c))
       } finally {
-        setIsLoading(false)
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === conversationId ? { ...c, isLoading: false } : c
+          )
+        )
+        activePollCancelRef.current = null
       }
     },
     [conversations, toast],
   )
+
+  // Cleanup on unmount to stop any polling
+  useEffect(() => {
+    return () => {
+      if (activePollCancelRef.current) {
+        activePollCancelRef.current()
+        activePollCancelRef.current = null
+      }
+    }
+  }, [])
 
   const handleAcceptMessage = useCallback(
     (agentType: AgentType, message: Message) => {
@@ -449,6 +715,15 @@ function ChatPageContent() {
 
       const nextAgentType: AgentType | null =
         agentType === "MODELER_AGENT" ? "CODER_AGENT" : agentType === "CODER_AGENT" ? "VISUALIZER_AGENT" : null
+
+      // Set loading immediately if we're moving to next agent
+      if (nextAgentType && activeConversationId) {
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === activeConversationId ? { ...c, isLoading: true } : c
+          )
+        )
+      }
 
       setConversations((prev) =>
         prev.map((c) => {
@@ -547,7 +822,101 @@ function ChatPageContent() {
             onSendMessage={handleSendMessage}
             onAcceptMessage={handleAcceptMessage}
             onNavigateToSubChat={handleNavigateToSubChat}
-            isLoading={isLoading}
+            isLoading={activeConversation?.isLoading || false}
+            onMessageAction={(message, action) => {
+              if (action !== "Retry") return
+
+              const retry = message.retry
+              const currentConvId = activeConversationId
+              if (!retry || !currentConvId) return
+
+              // Cancel any ongoing polling before retrying
+              if (activePollCancelRef.current) {
+                activePollCancelRef.current()
+                activePollCancelRef.current = null
+              }
+
+              // Set loading for this conversation
+              setConversations(prev => prev.map(c => c.id === currentConvId ? { ...c, isLoading: true } : c))
+
+              const conversation = conversations.find(c => c.id === currentConvId)
+              const backendConversationId = conversation?.conversationId
+
+              const submit = async () => {
+                const submitResponse = await chatApi.submitJob({
+                  agentType: retry.agentType,
+                  prompt: retry.prompt,
+                  conversationId: backendConversationId,
+                  acceptedModelMessageId: conversation?.acceptedModelMessageId,
+                  acceptedCodeMessageId: conversation?.acceptedCodeMessageId,
+                })
+                if (submitResponse.status !== "ok" || !submitResponse.jobId) {
+                  throw new Error(submitResponse.message || "Failed to submit job")
+                }
+                // Persist conversationId if returned and missing
+                if (submitResponse.conversationId && !backendConversationId) {
+                  setConversations(prev => prev.map(c => c.id === currentConvId ? { ...c, conversationId: submitResponse.conversationId } : c))
+                }
+                return submitResponse.jobId
+              }
+
+              (async () => {
+                try {
+                  const jobId = await submit()
+                  const { promise, cancel } = chatApi.pollJobStatusCancellable(jobId, () => { })
+                  activePollCancelRef.current = cancel
+                  const result = await promise
+
+                  let messageContent = result.answer || "Job completed but no answer received."
+                  let generatedFiles: { [filename: string]: string } | undefined = undefined
+                  try {
+                    const parsed: unknown = JSON.parse(result.answer || "{}")
+                    if (typeof parsed === "object" && parsed !== null) {
+                      const o = parsed as Record<string, unknown>
+                      if (typeof o.type === "string" && o.type === "visualization_report") {
+                        messageContent = typeof o.content === "string" ? o.content : ""
+                        const files = o.generated_files
+                        if (files && typeof files === "object") {
+                          generatedFiles = files as Record<string, string>
+                        } else {
+                          generatedFiles = {}
+                        }
+                      }
+                    }
+                  } catch { }
+
+                  const aiMessage: Message = {
+                    id: result.messageId || generateId(),
+                    role: "assistant",
+                    content: messageContent,
+                    timestamp: new Date(),
+                    type: retry.agentType === "MODELER_AGENT" ? "model" : retry.agentType === "VISUALIZER_AGENT" ? "visualization" : "code",
+                    agentType: retry.agentType,
+                    canAccept: true,
+                    generatedFiles,
+                  }
+
+                  setConversations(prev => prev.map(c => c.id === currentConvId ? {
+                    ...c,
+                    isLoading: false,
+                    subChats: c.subChats.map((subChat, idx) => {
+                      if (idx !== (c.activeSubChatIndex ?? 0)) return subChat
+                      // Remove error message with retry, then append result
+                      const filteredMessages = subChat.messages.filter(m => !m.retry)
+                      return { ...subChat, messages: [...filteredMessages, aiMessage] }
+                    }),
+                    updatedAt: new Date(),
+                  } : c))
+
+                } catch (err) {
+                  console.error("Retry failed:", err)
+                  // Leave an additional error toast; message stays with Retry button
+                } finally {
+                  setConversations(prev => prev.map(c => c.id === currentConvId ? { ...c, isLoading: false } : c))
+                  activePollCancelRef.current = null
+                }
+              })()
+            }}
           />
         )}
       </div>
