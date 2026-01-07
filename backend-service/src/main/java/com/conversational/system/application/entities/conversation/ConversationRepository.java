@@ -12,5 +12,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Inte
 
     public Optional<Conversation> findByTitle(String title);
 
-    public List<Conversation> findAllByUserId(Integer userId);
+    public List<Conversation> findAllByUserIdOrderByUpdatedAtDesc(Integer userId);
+
+    public void deleteById(Integer conversationId);
 }

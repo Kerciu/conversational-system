@@ -32,7 +32,6 @@ function AuthCallbackContent() {
                 router.push("/auth/login")
             }
         } else {
-            // Only redirect if we are sure there is no token, and maybe wait a bit or check for error param
             const error = searchParams.get("error")
             if (error) {
                 toast({

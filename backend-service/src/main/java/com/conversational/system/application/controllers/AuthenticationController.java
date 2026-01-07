@@ -31,8 +31,7 @@ public class AuthenticationController {
             authenticationService.registerUser(request.getUsername(), request.getEmail(), request.getPassword());
             return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Exception occured during registration process.\n" + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Exception occured during registration process.\n" + e.getMessage());
         }
     }
 
@@ -42,8 +41,7 @@ public class AuthenticationController {
             String token = authenticationService.loginUser(request.getUsername(), request.getPassword());
             return ResponseEntity.status(HttpStatus.OK).body(token);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Exception occured during registration process.\n" + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Exception occured during registration process.\n" + e.getMessage());
         }
     }
 
@@ -62,19 +60,20 @@ public class AuthenticationController {
         try {
             authenticationService.verifyAccount(verificationCode);
             return ResponseEntity.status(HttpStatus.OK).body("Account has been verified successfully");
-        }
-        catch(Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Exception occured during email verification process.\n" +e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Exception occured during email verification process.\n" + e.getMessage());
         }
     }
 
     @PostMapping("/reset-password-request")
     public ResponseEntity<String> resetPasswordRequest(@RequestBody String email) {
-        try{
+        try {
             authenticationService.resetPasswordRequest(email);
             return ResponseEntity.status(HttpStatus.OK).body("Password reset email sent successfully");
-        } catch(Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Exception occured during password reset process.\n" +e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Exception occured during password reset process.\n" + e.getMessage());
         }
     }
 
@@ -83,9 +82,9 @@ public class AuthenticationController {
         try {
             authenticationService.resetPassword(request.getResetCode(), request.getNewPassword());
             return ResponseEntity.status(HttpStatus.OK).body("Password has been reset successfully");
-        }
-        catch(Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Exception occured during password reset process.\n" + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Exception occured during password reset process.\n" + e.getMessage());
         }
     }
 }

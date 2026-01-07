@@ -55,19 +55,16 @@ export const conversationApi = {
         const historyData: ConversationHistoryItem[] = await response.json()
 
         return historyData.map((msg) => {
-            // Konwersja stringa na union type z walidacją
-            const normalizedRole = msg.role.toLowerCase() //TODO: Change to sender vals
-            const role: "user" | "assistant" =
-                normalizedRole === "user" || normalizedRole === "assistant"
-                    ? normalizedRole
-                    : "assistant"
+            const normalizedRole = msg.role.toLowerCase()
+            const role: "user" | "agent" =
+                normalizedRole === "user" ? "user" : "agent"
 
             return {
                 id: msg.id?.toString() || `msg-${Date.now()}-${Math.random()}`,
                 role,
                 content: msg.content,
                 timestamp: new Date(msg.timestamp),
-                type: "text" as const,
+                type: role === "agent" ? "model" : "text",
             }
         })
     },

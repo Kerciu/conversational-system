@@ -18,7 +18,7 @@ def start_worker():
 
             channel.start_consuming()
 
-        except pika.exceptions.AMQPConnectionError as e:
+        except Exception as e:
             print(f"Error: {e}. Connection to RabbitMQ failed, retrying...")
             time.sleep(5)
 

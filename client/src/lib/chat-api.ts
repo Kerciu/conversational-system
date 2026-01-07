@@ -4,6 +4,8 @@ interface JobSubmitRequest {
   jobId: string
   agentType: string
   prompt: string
+  userMessage?: string
+  conversationId: number
 }
 
 interface JobSubmitResponse {
@@ -28,16 +30,17 @@ const getAuthHeaders = (): HeadersInit => {
 
 export const chatApi = {
   submitJob: async (request: JobSubmitRequest): Promise<JobSubmitResponse> => {
+    // todo: include conversation id
     const response = await fetch(`${API_BASE}/submit-job`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify(request),
     })
-    
+
     if (!response.ok) {
       throw new Error(`Failed to submit job: ${response.statusText}`)
     }
-    
+
     return response.json()
   },
 
@@ -46,16 +49,16 @@ export const chatApi = {
       method: "GET",
       headers: getAuthHeaders(),
     })
-    
+
     if (!response.ok && response.status !== 202) {
       throw new Error(`Failed to get job status: ${response.statusText}`)
     }
-    
+
     return response.json()
   },
 
   pollJobStatus: async (
-    jobId: string, 
+    jobId: string,
     onUpdate: (status: JobStatusResponse) => void,
     intervalMs: number = 1000
   ): Promise<JobStatusResponse> => {
@@ -64,7 +67,7 @@ export const chatApi = {
         try {
           const status = await chatApi.getJobStatus(jobId)
           onUpdate(status)
-          
+
           if (status.status === "completed") {
             clearInterval(pollInterval)
             resolve(status)

@@ -1,11 +1,12 @@
 "use client"
 
 import { Sparkles, ArrowRight } from "lucide-react"
-import { examplePrompts } from "@/lib/mock-conversations"
+import { examplePrompts } from "@/src/lib/example-prompts"
 
 interface EmptyStateProps {
   onSelectPrompt: (prompt: string) => void
 }
+// TODO: Add example prompts
 
 export function EmptyState({ onSelectPrompt }: EmptyStateProps) {
   return (

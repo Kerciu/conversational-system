@@ -39,7 +39,7 @@ public class Conversation {
     private String title;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", insertable = false, updatable = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
     @CreationTimestamp

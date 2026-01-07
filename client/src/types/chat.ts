@@ -1,6 +1,6 @@
 export interface Message {
   id: string
-  role: "user" | "assistant" //TODO: CHANGE TO SENDER VALS
+  role: "user" | "agent"
   content: string
   timestamp: Date
   type?: "text" | "code" | "model" | "action"

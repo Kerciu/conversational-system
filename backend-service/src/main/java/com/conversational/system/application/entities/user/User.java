@@ -50,7 +50,6 @@ public class User {
         this.isVerified = false;
     }
 
-    // one user can have many conversations
     @OneToMany(mappedBy = "user")
     private List<Conversation> conversations;
 }

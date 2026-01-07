@@ -11,4 +11,6 @@ public class JobDescriptionDto {
     String jobId;
     String agentType;
     String prompt;
+    String userMessage;
+    Integer conversationId;
 }

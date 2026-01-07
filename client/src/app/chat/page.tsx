@@ -149,7 +149,6 @@ export default function ChatPage() {
   )
 
   const handleSendMessage = useCallback(
-    // TODO: UPDATE SENDING MESSAGE LOGIC
     async (content: string) => {
       const userMessage: Message = {
         id: generateId(),
@@ -162,19 +161,28 @@ export default function ChatPage() {
       let currentConvId = activeConversationId
 
       if (!currentConvId) {
-        const newConv: Conversation = {
-          id: generateId(),
-          title: content.slice(0, 50) + (content.length > 50 ? "..." : ""),
-          messages: [userMessage],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }
-        setConversations((prev) => [newConv, ...prev])
-        setActiveConversationId(newConv.id)
-        currentConvId = newConv.id
-      }
+        try {
+          currentConvId = await conversationApi.create()
 
-      else {
+          const newConv: Conversation = {
+            id: currentConvId,
+            title: content.slice(0, 50) + (content.length > 50 ? "..." : ""),
+            messages: [userMessage],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }
+
+          setConversations((prev) => [newConv, ...prev])
+          setActiveConversationId(currentConvId)
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to create conversation.",
+            variant: "destructive",
+          })
+          return
+        }
+      } else {
         setConversations((prev) =>
           prev.map((c) =>
             c.id === currentConvId
@@ -185,7 +193,6 @@ export default function ChatPage() {
       }
 
       setIsLoading(true)
-
       try {
         const jobId = `job-${generateId()}`
 
@@ -205,6 +212,8 @@ export default function ChatPage() {
           jobId,
           agentType: "MODELER_AGENT",
           prompt: fullPrompt,
+          userMessage: content,
+          conversationId: parseInt(currentConvId),
         })
 
         if (submitResponse.status !== "ok") {
@@ -217,7 +226,7 @@ export default function ChatPage() {
 
         const aiMessage: Message = {
           id: generateId(),
-          role: "assistant",
+          role: "agent",
           content: result.answer || "Job completed but no answer received.",
           timestamp: new Date(),
           type: "model",
@@ -241,7 +250,7 @@ export default function ChatPage() {
 
         const errorMessage: Message = {
           id: generateId(),
-          role: "assistant",
+          role: "agent",
           content: "Sorry, I encountered an error processing your request. Please try again.",
           timestamp: new Date(),
           type: "text",

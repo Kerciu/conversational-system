@@ -10,6 +10,6 @@ import java.util.Optional;
 public interface MessageRepository extends JpaRepository<Message, Integer> {
     public Optional<Message> findById(Integer id);
 
-    public List<Message> findByConversationId(Integer conversationId);
+    public List<Message> findAllByConversationIdOrderByTimestampAsc(Integer conversationId);
 
 }

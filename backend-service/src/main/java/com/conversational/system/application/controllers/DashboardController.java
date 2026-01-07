@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.conversational.system.application.entities.user.User;
 import com.conversational.system.application.authentication.AuthenticationService;
-import com.conversational.system.application.controllers.requests.UpdateConversationNameRequest;
+import com.conversational.system.application.controllers.requests.UpdateConversationTitleRequest;
 import com.conversational.system.application.controllers.responses.ConversationDisplayResponse;
 import com.conversational.system.application.controllers.responses.MessageDisplayResponse;
 import com.conversational.system.application.entities.conversation.ConversationService;
@@ -96,11 +96,11 @@ public class DashboardController {
         }
     }
 
-    @PutMapping("/update-conversation")
-    public ResponseEntity<?> updateConversation(Authentication authentication, @RequestBody UpdateConversationNameRequest request) {
+    @PutMapping("/rename-conversation")
+    public ResponseEntity<?> renameConversation(Authentication authentication, @RequestBody UpdateConversationTitleRequest request) {
         try {
             Integer userId = authenticationService.extractUser(authentication).getId();
-            conversationService.updateConversation(userId, request.getConversationId(), request.getName());
+            conversationService.renameConversation(userId, request.getConversationId(), request.getTitle());
             return ResponseEntity.status(HttpStatus.OK).build();
         } catch (Exception e) {
             log.error(e.getMessage());
