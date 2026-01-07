@@ -73,20 +73,20 @@ Zasady:
 6. WAŻNE: W [FILE: ...] używaj TYLKO nazwy pliku (np. wykres.png), NIE używaj ścieżek (np. output/wykres.png)."""
 
     def encode_files_to_base64(self, sandbox_files: Dict[str, str]) -> Dict[str, str]:
-        """Convert hex-encoded files from sandbox to base64 for JSON transport."""
+        """Files from sandbox are already base64-encoded, just pass them through."""
         generated_files_base64 = {}
-        for filename, hex_data in sandbox_files.items():
+        for filename, base64_data in sandbox_files.items():
             try:
-                binary_data = bytes.fromhex(hex_data)
-                generated_files_base64[filename] = base64.b64encode(binary_data).decode(
-                    "utf-8"
-                )
+                # Files are already base64-encoded from sandbox-service
+                generated_files_base64[filename] = base64_data
+                # Decode to check size for logging
+                binary_data = base64.b64decode(base64_data)
                 print(
-                    f"[VisualizerAgent] Encoded file: {filename} ({len(binary_data)} bytes)"
+                    f"[VisualizerAgent] Collected file: {filename} ({len(binary_data)} bytes)"
                 )
             except Exception as e:
                 print(
-                    f"[VisualizerAgent] Warning: Failed to encode file {filename}: {e}"
+                    f"[VisualizerAgent] Warning: Failed to process file {filename}: {e}"
                 )
         return generated_files_base64
 
