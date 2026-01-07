@@ -3,28 +3,41 @@ from code_sandbox import CodeSandbox, CodeExecutionResult, ExecutionStatus
 from docker_manager import DockerManager
 import pika
 import json
-import sys
+import os
 
-try:
-    docker_manager = DockerManager()
+sandbox = None
 
-    if docker_manager.client:
-        sandbox = CodeSandbox(
-            client=docker_manager.client,
-            image="python:3.13-slim",
-            timeout=10,
-            memory_limit="256m",
-            pids_limit=100,
-        )
-        print("Sandbox (CodeSandbox) initialized and ready to work.")
-    else:
-        raise RuntimeError("Docker client failed to initialize.")
 
-except Exception as e:
-    print(f"CRITICAL ERROR: Unable to initialize services: {e}")
-    print("Worker application will shut down.")
-    sandbox = None
-    sys.exit(1)
+def initialize_sandbox():
+    """Initialize sandbox on demand."""
+    global sandbox
+    try:
+        docker_manager = DockerManager()
+
+        if docker_manager.client:
+            # Use custom image with required libs (pulp, matplotlib, numpy)
+            # Default to the Compose-built image name
+            sandbox_image = os.getenv(
+                "SANDBOX_IMAGE", "conversational-system-sandbox-service"
+            )
+
+            sandbox = CodeSandbox(
+                client=docker_manager.client,
+                image=sandbox_image,
+                timeout=10,
+                memory_limit="256m",
+                pids_limit=100,
+            )
+            print("Sandbox (CodeSandbox) initialized and ready to work.")
+            return True
+        else:
+            raise RuntimeError("Docker client failed to initialize.")
+
+    except Exception as e:
+        print(f"CRITICAL ERROR: Unable to initialize services: {e}")
+        sandbox = None
+        return False
+
 
 # ---------------------------------------------------------------------------
 # RabbitMQ Callback
@@ -32,6 +45,12 @@ except Exception as e:
 
 
 def callback(ch, method, properties, body):
+    global sandbox
+
+    # Initialize sandbox on first call if not already done
+    if sandbox is None:
+        initialize_sandbox()
+
     if sandbox is None:
         print("Error: Sandbox is not available. Rejecting task and not requeuing.")
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
@@ -59,22 +78,42 @@ def callback(ch, method, properties, body):
         else:
             print(f"Job: {job_id} executed successfully.")
 
+        print(
+            f"[Callback] exec_result.generated_files: {exec_result.generated_files is not None}, count: {len(exec_result.generated_files) if exec_result.generated_files else 0}"
+        )
+        result_dict = exec_result.to_dict()
+        print(f"[Callback] result_dict keys: {result_dict.keys()}")
+        print(
+            f"[Callback] generatedFiles in result_dict: {'generatedFiles' in result_dict}, count: {len(result_dict.get('generatedFiles', {}))}"
+        )
+
         review_message = {
             "jobId": job_id,
             "status": exec_result.status.value,
-            "generatedCode": exec_result.to_dict(),
+            "generatedCode": result_dict,
         }
+
+        print(
+            f"[Callback] review_message generatedCode keys: {review_message['generatedCode'].keys()}"
+        )
+
+        # Support per-request response queue (used by agent-service) to avoid backend consumers grabbing sandbox results
+        response_queue = message_data.get("responseQueue", RABBITMQ_OUT_QUEUE)
+
+        # Only declare queue if it's not an exclusive queue (exclusive queues like 'amq.gen-*' are auto-created by the requester)
+        if not response_queue.startswith("amq.gen-"):
+            ch.queue_declare(queue=response_queue, durable=False)
 
         ch.basic_publish(
             exchange="",
-            routing_key=RABBITMQ_OUT_QUEUE,
+            routing_key=response_queue,
             body=json.dumps(review_message),
             properties=pika.BasicProperties(
                 delivery_mode=2,
             ),
         )
 
-        print(f"Sent result for job: {job_id}")
+        print(f"Sent result for job: {job_id} -> queue: {response_queue}")
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
 

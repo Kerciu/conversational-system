@@ -81,6 +81,53 @@ class TestCodeSandboxIntegration:
         with pytest.raises(RuntimeError, match="Docker client must be initialized"):
             CodeSandbox(None, "image", 10, "64m")
 
+    def test_sandbox_generated_image_file(self, real_sandbox):
+        """Test that sandbox can generate and extract image files"""
+
+        # Example code that generates a simple PNG file
+        code = """
+import struct
+import zlib
+
+def create_minimal_png():
+    # Minimal 1x1 red PNG
+    header = b'\\x89PNG\\r\\n\\x1a\\n'
+    
+    # IHDR chunk (1x1 image)
+    ihdr_data = struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0)
+    ihdr_crc = zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff
+    ihdr_chunk = struct.pack('>I', 13) + b'IHDR' + ihdr_data + struct.pack('>I', ihdr_crc)
+    
+    # IDAT chunk (compressed pixel data for red pixel)
+    idat_data = zlib.compress(b'\\x00\\xff\\x00\\x00')
+    idat_crc = zlib.crc32(b'IDAT' + idat_data) & 0xffffffff
+    idat_chunk = struct.pack('>I', len(idat_data)) + b'IDAT' + idat_data + struct.pack('>I', idat_crc)
+    
+    # IEND chunk
+    iend_crc = zlib.crc32(b'IEND') & 0xffffffff
+    iend_chunk = struct.pack('>I', 0) + b'IEND' + struct.pack('>I', iend_crc)
+    
+    return header + ihdr_chunk + idat_chunk + iend_chunk
+
+png_data = create_minimal_png()
+with open('/output/test_image.png', 'wb') as f:
+    f.write(png_data)
+print('Generated test_image.png')
+"""
+        result = real_sandbox.run(code)
+        assert result.status == ExecutionStatus.CODE_EXECUTED
+        assert result.status_code == 0
+        assert "Generated test_image.png" in result.stdout
+        assert result.generated_files is not None
+        assert "test_image.png" in result.generated_files
+
+        # Verify file is valid PNG bytes
+        png_bytes = result.generated_files["test_image.png"]
+        assert isinstance(png_bytes, bytes)
+
+        # Verify it's valid PNG data
+        assert png_bytes.startswith(b"\x89PNG\r\n\x1a\n"), "Invalid PNG header"
+
 
 def test_code_execution_result_to_dict():
     result = CodeExecutionResult(
@@ -224,3 +271,51 @@ class TestCallbackFunction:
         mock_ch.basic_ack.assert_not_called()
         mock_ch.basic_nack.assert_called_once_with(delivery_tag=54321, requeue=False)
         mock_ch.basic_publish.assert_not_called()
+
+    def test_callback_with_generated_files(self, mock_callback_deps, mocker):
+        """Test that callback includes generated files in visualization_report"""
+        import base64
+
+        mock_ch, mock_method, mock_props = mock_callback_deps
+
+        # Create a mock result with generated files (simulating image generation)
+        # Note: CodeExecutionResult expects bytes, converts to base64 in to_dict()
+        png_bytes = b"PNG_FAKE_DATA_123"
+        generated_files = {"plot.png": png_bytes}
+        mock_result = CodeExecutionResult(
+            status_code=0,
+            stdout="plot generated",
+            stderr="",
+            status=ExecutionStatus.CODE_EXECUTED,
+            generated_files=generated_files,
+        )
+        mock_sandbox = MagicMock(spec=CodeSandbox)
+        mock_sandbox.run.return_value = mock_result
+        mocker.patch("callback.sandbox", mock_sandbox)
+
+        body_data = {
+            "jobId": "job-viz-001",
+            "code": "import matplotlib.pyplot as plt; plt.plot([1,2,3]); plt.savefig('plot.png')",
+        }
+        body_json = json.dumps(body_data)
+
+        callback(mock_ch, mock_method, mock_props, body_json)
+
+        mock_sandbox.run.assert_called_once()
+        mock_ch.basic_ack.assert_called_once_with(delivery_tag=54321)
+        mock_ch.basic_publish.assert_called_once()
+
+        # Verify the published message contains visualization_report with files
+        published_body = json.loads(mock_ch.basic_publish.call_args[1]["body"])
+        assert published_body["jobId"] == "job-viz-001"
+        assert published_body["status"] == "CODE_EXECUTED"
+
+        # Check generatedCode contains generatedFiles
+        generated_code = published_body["generatedCode"]
+        assert "generatedFiles" in generated_code
+        assert "plot.png" in generated_code["generatedFiles"]
+        # Files are converted to base64 in to_dict()
+        assert (
+            generated_code["generatedFiles"]["plot.png"]
+            == base64.b64encode(png_bytes).decode()
+        )

@@ -1,11 +1,30 @@
+export type AgentType = "MODELER_AGENT" | "CODER_AGENT" | "VISUALIZER_AGENT"
+
 export interface Message {
   id: string
   role: "user" | "assistant"
   content: string
   timestamp: Date
-  type?: "text" | "code" | "model" | "action"
+  type?: "text" | "code" | "model" | "action" | "visualization"
   codeLanguage?: string
   actions?: { label: string; variant: "primary" | "secondary" }[]
+  agentType?: AgentType
+  canAccept?: boolean
+  generatedFiles?: { [filename: string]: string } // Base64-encoded files for visualization
+  retry?: {
+    mode: "send" | "auto"
+    agentType: AgentType
+    prompt: string
+    conversationId?: string
+    acceptedModelMessageId?: string
+    acceptedCodeMessageId?: string
+  }
+}
+
+export interface SubChat {
+  agentType: AgentType
+  messages: Message[]
+  acceptedMessage?: Message
 }
 
 export interface Conversation {
@@ -14,6 +33,15 @@ export interface Conversation {
   messages: Message[]
   createdAt: Date
   updatedAt: Date
+  conversationId?: string
+
+  subChats: SubChat[]
+  activeSubChatIndex: number
+
+  acceptedModelMessageId?: string
+  acceptedCodeMessageId?: string
+  codeExecutionResult?: string
+  isLoading?: boolean
 }
 
 export type ConversationGroup = "today" | "yesterday" | "last7days" | "last30days" | "older"

@@ -2,16 +2,18 @@ from agents.agent import Agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from typing import List, Dict, Any
 
 
 class ModelerAgent(Agent):
     def __init__(self):
-        self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.2)
+        self.llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash-lite", temperature=0.2
+        )
 
-    async def run(self, prompt: str, job_id: str, context: str = "") -> dict:
-        print(f"[ModelerAgent] Processing job {job_id}")
-
-        system_template = """
+    def get_system_template(self) -> str:
+        """Get system prompt template. Testable without LLM."""
+        return """
         Jesteś ekspertem Badań Operacyjnych (Operations Research).
         Twoim zadaniem jest sformułowanie modelu matematycznego.
         
@@ -29,9 +31,13 @@ class ModelerAgent(Agent):
         5. NIE używaj bloku kodu ```latex ... ```.
         
         Bądź zwięzły, czytelny i profesjonalny.
+        
+        Jeśli zostanie dostarczona historia konwersacji, weź pod uwagę poprzednie wiadomości i kontekst, aby lepiej zrozumieć potrzeby użytkownika i doprecyzować model.
         """
 
-        user_template = """
+    def build_user_template(self) -> str:
+        """Get user prompt template. Testable without LLM."""
+        return """
         Sformułuj model matematyczny dla poniższego problemu.
         
         === MATERIAŁY REFERENCYJNE ===
@@ -42,12 +48,34 @@ class ModelerAgent(Agent):
         {input}
         """
 
+    async def run(
+        self,
+        prompt: str,
+        job_id: str,
+        context: str = "",
+        conversation_history: List[Dict[str, Any]] = None,
+        accepted_model: str = "",
+        accepted_code: str = "",
+    ) -> dict:
+        print(f"[ModelerAgent] Processing job {job_id}")
+
+        messages = self.build_message_history(
+            self.get_system_template(), conversation_history or [], accepted_model
+        )
+
         prompt_template = ChatPromptTemplate.from_messages(
-            [("system", system_template), ("user", user_template)]
+            messages + [("user", self.build_user_template())]
         )
 
         chain = prompt_template | self.llm | StrOutputParser()
-
         response = await chain.ainvoke({"input": prompt, "context": context})
 
-        return {"type": "math_model", "content": response, "engine": "gemini-2.5-flash"}
+        return self.format_response(response)
+
+    def format_response(self, response: str) -> dict:
+        """Format LLM response as agent output. Testable without LLM."""
+        return {
+            "type": "math_model",
+            "content": response,
+            "engine": self.llm.model,
+        }

@@ -1,5 +1,6 @@
 package com.conversational.system.application.config;
 
+import com.conversational.system.application.conversation.ConversationService;
 import com.conversational.system.application.job.JobService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -15,33 +16,66 @@ public class ResultsListener {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final JobService jobService;
+    private final ConversationService conversationService;
 
     @RabbitListener(queues = "${app.queue.code.review}")
     public void receiveJobResults(Map<String, Object> resultMessage) {
         String jobId = (String) resultMessage.get("jobId");
         String status = (String) resultMessage.get("status");
-        
+
         System.out.println("Got result for job: " + jobId);
         System.out.println("Status: " + status);
-        
+
         // Extract answer from payload
         String answer = "No answer available";
         Object payload = resultMessage.get("payload");
-        
+
         if (payload instanceof Map) {
             @SuppressWarnings("unchecked")
             Map<String, Object> payloadMap = (Map<String, Object>) payload;
-            Object content = payloadMap.get("content");
-            if (content != null) {
-                answer = content.toString();
+
+            // Check if this is a visualization report with generated files
+            Object type = payloadMap.get("type");
+            if ("visualization_report".equals(type)) {
+                // For visualization, store the entire payload as JSON (includes content +
+                // generated_files)
+                try {
+                    answer = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payloadMap);
+                } catch (Exception e) {
+                    System.err.println("Failed to serialize visualization payload: " + e.getMessage());
+                    Object content = payloadMap.get("content");
+                    answer = content != null ? content.toString() : "No answer available";
+                }
+            } else {
+                // For other types (model, code), just use content
+                Object content = payloadMap.get("content");
+                if (content != null) {
+                    answer = content.toString();
+                }
             }
         }
-        
+
         System.out.println("Answer extracted: " + answer.substring(0, Math.min(100, answer.length())));
-        
+
         // Update job status in JobService
         if ("TASK_COMPLETED".equals(status)) {
-            jobService.updateJobResult(jobId, "completed", answer);
+            // Save assistant message to database
+            String messageId = null;
+            try {
+                var message = conversationService.saveAssistantMessage(jobId, answer);
+                messageId = message.getId().toString();
+                System.out.println("Assistant message saved for job: " + jobId + " with messageId: " + messageId);
+            } catch (Exception e) {
+                System.err.println("Failed to save assistant message: " + e.getMessage());
+            }
+
+            // Update job result with messageId
+            jobService.updateJobResult(jobId, "completed", answer, messageId);
+        } else if ("TASK_FAILED".equals(status)) {
+            String errorMessage = (String) resultMessage.get("error");
+            String fullError = "Task failed: " + (errorMessage != null ? errorMessage : "Unknown error");
+            System.err.println("Job " + jobId + " failed: " + errorMessage);
+            jobService.updateJobResult(jobId, "error", fullError);
         } else {
             jobService.updateJobResult(jobId, "error", "Task failed: " + status);
         }
