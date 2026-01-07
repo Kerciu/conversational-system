@@ -53,7 +53,6 @@ public class ConversationService {
 	}
 
 	public Integer newConversation(User user, String title) {
-		// TODO: better title
 		try {
 			Conversation conversation = new Conversation(title, user);
 			conversationRepository.save(conversation);
@@ -94,6 +93,8 @@ public class ConversationService {
 			isConversationOwner(userId, Integer.valueOf(conversationId));
 			Conversation conversation = conversationRepository.findById(conversationId)
 					.orElseThrow(() -> new RuntimeException("Conversation with id " + conversationId + "not found"));
+			updateConversationName(conversation, content);
+
 			Message message = new Message(content, conversation, Sender.USER);
 			messageRepository.save(message);
 		} catch (Exception e) {
@@ -125,4 +126,15 @@ public class ConversationService {
 			throw new RuntimeException("Error checking conversation owner.\n" + e.getMessage());
 		}
 	}
+
+	private void updateConversationName(Conversation conversation, String content) {
+		int maxTitleLength = 20;
+		if (messageRepository.countByConversationId(conversation.getId()) == 0) {
+			String newTitle = content.length() > maxTitleLength ? content.substring(0, maxTitleLength) + "..."
+					: content;
+			conversation.setTitle(newTitle);
+			conversationRepository.save(conversation);
+		}
+	}
+
 }

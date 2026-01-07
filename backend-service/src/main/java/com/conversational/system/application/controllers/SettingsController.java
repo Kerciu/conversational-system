@@ -33,7 +33,6 @@ public class SettingsController {
     @GetMapping("/profile")
     public ResponseEntity<UserProfileDto> getUserProfile(Authentication authentication) {
         try {
-            // TODO: Separate this into a service
             var user = authenticationService.extractUser(authentication);
 
             UserProfileDto profile = UserProfileDto
@@ -53,31 +52,37 @@ public class SettingsController {
     @GetMapping("/get-is-verified")
     public ResponseEntity<String> getUserVerificationState(Authentication authentication) {
         try {
-            String verificationState = authenticationService.extractUser(authentication).isVerified() ? "verified" : "unverified";
+            String verificationState = authenticationService.extractUser(authentication).isVerified() ? "verified"
+                    : "unverified";
             return ResponseEntity.status(HttpStatus.OK).body(verificationState);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error getting user email.\n" + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error getting user email.\n" + e.getMessage());
         }
     }
 
     @GetMapping("/get-creation-date")
     public ResponseEntity<String> getCreationDate(Authentication authentication) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(authenticationService.extractUser(authentication).getCreationDate().toString());
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(authenticationService.extractUser(authentication).getCreationDate().toString());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error getting user email.\n" + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error getting user email.\n" + e.getMessage());
         }
     }
 
     @PostMapping("/change-username")
-    public ResponseEntity<String> changeUsername(Authentication authentication, @RequestBody ChangeUsernameRequest request) {
+    public ResponseEntity<String> changeUsername(Authentication authentication,
+            @RequestBody ChangeUsernameRequest request) {
         try {
             User user = authenticationService.extractUser(authentication);
             userService.changeUsername(user, request.getNewUsername());
             String token = jwtService.generateJWToken(request.getNewUsername());
             return ResponseEntity.status(HttpStatus.OK).body(token);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occured while changing username.\n" + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error occured while changing username.\n" + e.getMessage());
         }
     }
 
@@ -87,17 +92,21 @@ public class SettingsController {
             userService.changeEmail(authenticationService.extractUser(authentication), request.getNewEmail());
             return ResponseEntity.status(HttpStatus.OK).body("Email changed to " + request.getNewEmail());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occured while changing email.\n" + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error occured while changing email.\n" + e.getMessage());
         }
     }
 
     @PutMapping("/change-password")
-    public ResponseEntity<String> changePassword(Authentication authentication, @RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<String> changePassword(Authentication authentication,
+            @RequestBody ChangePasswordRequest request) {
         try {
-            userService.changePassword(authenticationService.extractUser(authentication), request.getCurrentPassword(), request.getNewPassword());
+            userService.changePassword(authenticationService.extractUser(authentication), request.getCurrentPassword(),
+                    request.getNewPassword());
             return ResponseEntity.status(HttpStatus.OK).body("Password changed.");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occured while changing email.\n" + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error occured while changing email.\n" + e.getMessage());
         }
     }
 
@@ -108,7 +117,8 @@ public class SettingsController {
             return ResponseEntity.status(HttpStatus.OK).body("Accuont deletedd");
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occured during account deletion.\n" + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error occured during account deletion.\n" + e.getMessage());
         }
     }
 }

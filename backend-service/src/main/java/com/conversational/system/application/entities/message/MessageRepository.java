@@ -12,4 +12,6 @@ public interface MessageRepository extends JpaRepository<Message, Integer> {
 
     public List<Message> findAllByConversationIdOrderByTimestampAsc(Integer conversationId);
 
+    long countByConversationId(Integer conversationId);
+
 }
