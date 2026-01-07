@@ -73,14 +73,14 @@ Zasady:
 6. WAŻNE: W [FILE: ...] używaj TYLKO nazwy pliku (np. wykres.png), NIE używaj ścieżek (np. output/wykres.png)."""
 
     def encode_files_to_base64(self, sandbox_files: Dict[str, str]) -> Dict[str, str]:
-        """Files from sandbox are already base64-encoded, just pass them through."""
+        """Files from sandbox are already base64-encoded, validate and pass them through."""
         generated_files_base64 = {}
         for filename, base64_data in sandbox_files.items():
             try:
                 # Files are already base64-encoded from sandbox-service
-                generated_files_base64[filename] = base64_data
-                # Decode to check size for logging
+                # Validate by attempting to decode
                 binary_data = base64.b64decode(base64_data)
+                generated_files_base64[filename] = base64_data
                 print(
                     f"[VisualizerAgent] Collected file: {filename} ({len(binary_data)} bytes)"
                 )
@@ -88,6 +88,7 @@ Zasady:
                 print(
                     f"[VisualizerAgent] Warning: Failed to process file {filename}: {e}"
                 )
+                # Skip invalid files - don't add them to result
         return generated_files_base64
 
     def format_response(

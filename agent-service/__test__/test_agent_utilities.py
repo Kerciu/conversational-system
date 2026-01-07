@@ -120,26 +120,26 @@ class TestVisualizerAgentUtilities:
     """Test VisualizerAgent utility methods"""
 
     def test_encode_files_to_base64_single_file(self):
-        """Test hex to base64 conversion for PNG files"""
+        """Test that base64-encoded files are passed through correctly"""
         agent = VisualizerAgent()
 
-        # Minimal PNG signature in hex (89 50 4E 47 0D 0A 1A 0A)
-        hex_data = "89504e470d0a1a0a"
-        sandbox_files = {"test.png": hex_data}
+        # Minimal PNG signature already in base64 (89 50 4E 47 0D 0A 1A 0A)
+        base64_data = "iVBORw0KGgo="
+        sandbox_files = {"test.png": base64_data}
 
         result = agent.encode_files_to_base64(sandbox_files)
 
         assert "test.png" in result
-        # Base64 of PNG signature should start with "iVBORw"
-        assert result["test.png"].startswith("iVBORw")
+        # Base64 should be passed through unchanged
+        assert result["test.png"] == base64_data
 
     def test_encode_files_to_base64_multiple_files(self):
-        """Test batch encoding of multiple files"""
+        """Test batch processing of multiple files"""
         agent = VisualizerAgent()
 
         sandbox_files = {
-            "chart1.png": "89504e470d0a1a0a",
-            "chart2.png": "89504e470d0a1a0a",
+            "chart1.png": "iVBORw0KGgo=",
+            "chart2.png": "iVBORw0KGgo=",
         }
 
         result = agent.encode_files_to_base64(sandbox_files)
@@ -147,17 +147,19 @@ class TestVisualizerAgentUtilities:
         assert len(result) == 2
         assert "chart1.png" in result
         assert "chart2.png" in result
+        assert result["chart1.png"] == "iVBORw0KGgo="
+        assert result["chart2.png"] == "iVBORw0KGgo="
 
-    def test_encode_files_to_base64_invalid_hex(self):
-        """Test encoding handles invalid hex data gracefully"""
+    def test_encode_files_to_base64_invalid_base64(self):
+        """Test encoding handles invalid base64 data gracefully"""
         agent = VisualizerAgent()
 
-        sandbox_files = {"bad.png": "not_valid_hex"}
+        sandbox_files = {"bad.png": "not_valid_base64!@#"}
 
         result = agent.encode_files_to_base64(sandbox_files)
 
-        # Should return empty dict or skip bad file
-        assert "bad.png" not in result or result == {}
+        # Should skip files that fail base64 decoding
+        assert "bad.png" not in result
 
     def test_format_response(self):
         """Test response structure with all required fields"""
@@ -183,7 +185,7 @@ class TestVisualizerAgentUtilities:
             "status": "CODE_SUCCESS",
             "generatedCode": {
                 "stdout": "Generated files: chart.png",
-                "generatedFiles": {"chart.png": "89504e47"},
+                "generatedFiles": {"chart.png": "iVBORw0KGgo="},
             },
         }
 
@@ -191,7 +193,7 @@ class TestVisualizerAgentUtilities:
 
         assert stdout == "Generated files: chart.png"
         assert "chart.png" in files
-        assert files["chart.png"] == "89504e47"
+        assert files["chart.png"] == "iVBORw0KGgo="
 
     def test_extract_sandbox_results_failure(self):
         """Test extraction raises exception on failed execution"""
