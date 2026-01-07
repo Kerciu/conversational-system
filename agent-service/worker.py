@@ -1,6 +1,6 @@
 from rabbitmq_config import connect_rabbitmq, RABBITMQ_IN_QUEUE
 from callback import callback
-# import pika
+import pika
 import time
 
 
@@ -18,12 +18,15 @@ def start_worker():
 
             channel.start_consuming()
 
-        except Exception as e:
+        except pika.exceptions.AMQPConnectionError as e:
             print(f"Error: {e}. Connection to RabbitMQ failed, retrying...")
             time.sleep(5)
 
         except KeyboardInterrupt:
             print("Worker stopped by user.")
+            break
+        except Exception as e:
+            print(f"Error: {e}")
             break
 
 
