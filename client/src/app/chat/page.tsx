@@ -407,11 +407,23 @@ function ChatPageContent() {
   )
 
   const handleSendMessage = useCallback(
-    async (content: string, agentType: AgentType) => {
+    async (content: string, agentType: AgentType, files?: File[]) => {
+      
+      // Build message content including file names if files are attached
+      let displayContent = content;
+      if (files && files.length > 0) {
+         const fileNames = files.map(f => f.name).join(", ");
+         if (!displayContent.trim()) {
+            displayContent = `[Sent files: ${fileNames}]`;
+         } else {
+            displayContent += `\n\n[Attached: ${fileNames}]`;
+         }
+      }
+
       const userMessage: Message = {
         id: generateId(),
         role: "user",
-        content,
+        content: displayContent,
         timestamp: new Date(),
         type: "text",
         agentType,
@@ -457,13 +469,14 @@ function ChatPageContent() {
         // Get current conversation for context
         const currentConv = conversations.find(c => c.id === currentConvId)
 
-        // Submit job to backend
+        // Wywołanie API z plikami
         const submitResponse = await chatApi.submitJob({
           agentType: agentType,
-          prompt: content,
+          prompt: content, // Do backendu wysyłamy czysty prompt, bez doklejonych nazw plików
           conversationId: backendConversationId,
           acceptedModelMessageId: currentConv?.acceptedModelMessageId,
           acceptedCodeMessageId: currentConv?.acceptedCodeMessageId,
+          files: files,
         })
 
         if (submitResponse.status !== "ok" || !submitResponse.jobId) {
@@ -500,20 +513,18 @@ function ChatPageContent() {
             messageContent = parsed.content || ""
             generatedFiles = parsed.generated_files || {}
           }
-        } catch {
-          // Not JSON or parsing failed, use answer as-is
-        }
+        } catch { }
 
         // Create AI message with the result
         const aiMessage: Message = {
-          id: result.messageId || generateId(), // Use messageId from backend or fallback
+          id: result.messageId || generateId(),
           role: "assistant",
           content: messageContent,
           timestamp: new Date(),
           type: agentType === "MODELER_AGENT" ? "model" : agentType === "VISUALIZER_AGENT" ? "visualization" : "code",
           agentType,
           canAccept: true,
-          generatedFiles, // Add generated files for visualization
+          generatedFiles,
         }
 
         setConversations((prev) =>
@@ -632,14 +643,14 @@ function ChatPageContent() {
 
         // Create AI message with the result - use messageId from backend
         const aiMessage: Message = {
-          id: result.messageId || generateId(), // Use messageId from backend or fallback
+          id: result.messageId || generateId(),
           role: "assistant",
           content: messageContent,
           timestamp: new Date(),
           type: agentType === "MODELER_AGENT" ? "model" : agentType === "VISUALIZER_AGENT" ? "visualization" : "code",
           agentType,
           canAccept: true,
-          generatedFiles, // Add generated files for visualization
+          generatedFiles,
         }
 
         setConversations((prev) =>

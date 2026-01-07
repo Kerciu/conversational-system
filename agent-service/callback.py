@@ -1,5 +1,6 @@
 from rabbitmq_config import RABBITMQ_OUT_QUEUE
 from agents.agent_registry import get_agent_class
+from file_manager import extract_text_from_files
 import pika
 import json
 import asyncio
@@ -12,7 +13,11 @@ def callback(ch, method, properties, body):
         agent_type_str = message_data.get("agentType")
         prompt = message_data.get("prompt")
         conversation_history = message_data.get("conversationHistory", [])
-        context = message_data.get("context", "")
+        
+        existing_context = message_data.get("context", "")
+        
+        files_data = message_data.get("files", [])
+        
         accepted_model = message_data.get("acceptedModel", "")
         accepted_code = message_data.get("acceptedCode", "")
 
@@ -24,6 +29,14 @@ def callback(ch, method, properties, body):
         print(f"Got job: {job_id}")
         print(f"Delegating work to {agent_type_str}")
         print(f"Conversation history length: {len(conversation_history)} messages")
+        
+        if files_data:
+            print(f"Received {len(files_data)} file(s). Extracting text...")
+            
+        file_context = extract_text_from_files(files_data)
+        
+        full_context = existing_context + "\n" + file_context
+
         if accepted_model:
             print(f"Accepted model provided (length: {len(accepted_model)})")
         if accepted_code:
@@ -44,7 +57,7 @@ def callback(ch, method, properties, body):
             agent_instance.run(
                 prompt,
                 job_id,
-                context=context,
+                context=full_context,
                 conversation_history=conversation_history,
                 accepted_model=accepted_model,
                 accepted_code=accepted_code,
@@ -76,7 +89,6 @@ def callback(ch, method, properties, body):
 
         traceback.print_exc()
 
-        # Wyślij wiadomość o błędzie do backendu
         try:
             message_data = json.loads(body)
             job_id = message_data.get("jobId")

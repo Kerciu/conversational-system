@@ -1,15 +1,14 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef, useEffect } from "react"
-import { Send, Paperclip, Loader2 } from "lucide-react"
+import { Send, Paperclip, Loader2, X, FileText } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface ChatInputProps {
-  onSend: (message: string) => void
+  onSend: (message: string, files?: File[]) => void
   isLoading?: boolean
   placeholder?: string
   maxLength?: number
@@ -22,8 +21,10 @@ export function ChatInput({
   maxLength = 1000,
 }: ChatInputProps) {
   const [message, setMessage] = useState("")
+  const [files, setFiles] = useState<File[]>([])
   const [isFocused, setIsFocused] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Auto-resize textarea
   useEffect(() => {
@@ -35,11 +36,15 @@ export function ChatInput({
   }, [message])
 
   const handleSend = () => {
-    if (message.trim() && !isLoading) {
-      onSend(message.trim())
+    if ((message.trim() || files.length > 0) && !isLoading) {
+      onSend(message.trim(), files)
       setMessage("")
+      setFiles([])
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto"
+      }
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
       }
     }
   }
@@ -51,12 +56,36 @@ export function ChatInput({
     }
   }
 
+  const handlePaperclipClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFiles((prev) => [...prev, ...Array.from(e.target.files!)])
+    }
+  }
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
   const charCount = message.length
   const isOverLimit = charCount > maxLength
 
   return (
     <TooltipProvider>
       <div className="relative">
+        {/* Ukryty input do plików */}
+        <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            multiple
+            onChange={handleFileChange}
+            accept=".pdf,.txt,.csv,.json,.md"
+        />
+
         <div
           className={cn(
             "absolute -inset-1 rounded-2xl bg-gradient-to-r from-primary/20 via-accent/15 to-cyan-500/10 blur-xl transition-opacity duration-300",
@@ -77,6 +106,24 @@ export function ChatInput({
             isFocused ? "border-primary/40 shadow-lg" : "border-border/50",
           )}
         >
+          {/* NOWA SEKCJA: Podgląd załączonych plików */}
+          {files.length > 0 && (
+            <div className="flex flex-wrap gap-2 px-4 pt-3 pb-1 border-b border-border/30">
+                {files.map((file, index) => (
+                    <div key={index} className="flex items-center gap-1 bg-secondary/50 text-secondary-foreground text-xs px-2 py-1 rounded-md animate-in fade-in slide-in-from-bottom-1">
+                        <FileText className="h-3 w-3 opacity-70" />
+                        <span className="max-w-[150px] truncate" title={file.name}>{file.name}</span>
+                        <button 
+                            onClick={() => removeFile(index)}
+                            className="ml-1 hover:text-destructive transition-colors"
+                        >
+                            <X className="h-3 w-3" />
+                        </button>
+                    </div>
+                ))}
+            </div>
+          )}
+
           <div className="flex items-end gap-2 p-3">
             {/* Attach button */}
             <Tooltip>
@@ -84,12 +131,13 @@ export function ChatInput({
                 <Button
                   variant="ghost"
                   size="icon"
+                  onClick={handlePaperclipClick}
                   className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
                 >
                   <Paperclip className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Attach files (coming soon)</TooltipContent>
+              <TooltipContent>Attach files (PDF, TXT, CSV)</TooltipContent>
             </Tooltip>
 
             {/* Textarea */}
@@ -110,11 +158,11 @@ export function ChatInput({
             {/* Send button */}
             <Button
               onClick={handleSend}
-              disabled={!message.trim() || isLoading || isOverLimit}
+              disabled={(!message.trim() && files.length === 0) || isLoading || isOverLimit}
               size="icon"
               className={cn(
                 "h-9 w-9 shrink-0 rounded-xl transition-all duration-300 border-0",
-                message.trim() && !isOverLimit
+                (message.trim() || files.length > 0) && !isOverLimit
                   ? "bg-gradient-to-r from-primary to-accent hover:opacity-90 glow-primary btn-glow"
                   : "bg-secondary text-muted-foreground",
               )}

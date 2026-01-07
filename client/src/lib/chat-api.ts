@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8080/api/test"
+const API_BASE = "http://localhost:8080/api/jobs"
 const CONVERSATIONS_API = "http://localhost:8080/api/conversations"
 
 interface JobSubmitRequest {
@@ -7,6 +7,7 @@ interface JobSubmitRequest {
   conversationId?: string
   acceptedModelMessageId?: string
   acceptedCodeMessageId?: string
+  files?: File[]
 }
 
 interface JobSubmitResponse {
@@ -17,7 +18,7 @@ interface JobSubmitResponse {
 }
 
 interface JobStatusResponse {
-  status: "pending" | "completed" | "error" | "not_found"
+  status: "pending" | "completed" | "error" | "not_found" | "queued"
   answer?: string
   message?: string
   messageId?: string
@@ -46,21 +47,43 @@ const getAuthHeaders = (): HeadersInit => {
 
 export const chatApi = {
   submitJob: async (request: JobSubmitRequest): Promise<JobSubmitResponse> => {
-    const response = await fetch(`${API_BASE}/submit-job`, {
+    const token = localStorage.getItem("token")
+    
+    const formData = new FormData()
+    formData.append("agentType", request.agentType)
+    formData.append("prompt", request.prompt)
+    
+    if (request.conversationId) formData.append("conversationId", request.conversationId)
+    if (request.acceptedModelMessageId) formData.append("acceptedModelMessageId", request.acceptedModelMessageId)
+    if (request.acceptedCodeMessageId) formData.append("acceptedCodeMessageId", request.acceptedCodeMessageId)
+
+    if (request.files && request.files.length > 0) {
+      request.files.forEach((file) => {
+        formData.append("files", file)
+      })
+    }
+
+    const headers: HeadersInit = {}
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${API_BASE}/submit`, {
       method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(request),
+      headers: headers,
+      body: formData,
     })
 
     if (!response.ok) {
-      throw new Error(`Failed to submit job: ${response.statusText}`)
+      const errorText = await response.text().catch(() => response.statusText)
+      throw new Error(`Failed to submit job: ${response.status} ${errorText}`)
     }
 
     return response.json()
   },
 
   getJobStatus: async (jobId: string): Promise<JobStatusResponse> => {
-    const response = await fetch(`${API_BASE}/get-job?jobId=${encodeURIComponent(jobId)}`, {
+    const response = await fetch(`${API_BASE}/get?jobId=${encodeURIComponent(jobId)}`, {
       method: "GET",
       headers: getAuthHeaders(),
     })
@@ -72,7 +95,6 @@ export const chatApi = {
     return response.json()
   },
 
-  // Cancellable variant: returns a cancel() handle and a promise
   pollJobStatusCancellable: (
     jobId: string,
     onUpdate: (status: JobStatusResponse) => void,
@@ -94,14 +116,14 @@ export const chatApi = {
           const status = await chatApi.getJobStatus(jobId)
           onUpdate(status)
 
-          if (status.status === "completed") {
+          if (status.status === "completed" || status.status === "TASK_COMPLETED" as any) {
             if (interval) clearInterval(interval)
             interval = null
             if (!settled) {
               settled = true
               resolve(status)
             }
-          } else if (status.status === "error") {
+          } else if (status.status === "error" || status.status === "TASK_FAILED" as any) {
             if (interval) clearInterval(interval)
             interval = null
             if (!settled) {
@@ -123,7 +145,6 @@ export const chatApi = {
     return { promise, cancel }
   },
 
-  // Conversation management
   getConversations: async (): Promise<ConversationRecord[]> => {
     const response = await fetch(CONVERSATIONS_API, {
       method: "GET",

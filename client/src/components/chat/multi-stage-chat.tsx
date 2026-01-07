@@ -13,7 +13,7 @@ interface MultiStageChatProps {
   subChats: SubChat[]
   activeSubChatIndex: number
   conversationId?: string
-  onSendMessage: (message: string, agentType: AgentType) => void
+  onSendMessage: (message: string, agentType: AgentType, files?: File[]) => void
   onAcceptMessage: (agentType: AgentType, message: Message) => void
   onNavigateToSubChat: (index: number) => void
   isLoading?: boolean
@@ -52,9 +52,11 @@ export function MultiStageChat({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [activeSubChat?.messages, isLoading])
 
-  const handleSend = (message: string) => {
-    if (message.trim() && !isLoading) {
-      onSendMessage(message, activeAgentType)
+  const handleSend = (message: string, files?: File[]) => {
+    const hasContent = message.trim().length > 0 || (files && files.length > 0);
+    
+    if (hasContent && !isLoading) {
+      onSendMessage(message, activeAgentType, files)
     }
   }
 
@@ -100,9 +102,7 @@ export function MultiStageChat({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
         {activeSubChat?.messages.length === 0 && !isLoading ? (
-          <EmptyState onSelectPrompt={function (prompt: string): void {
-            throw new Error("Function not implemented.")
-          }} />
+          <EmptyState onSelectPrompt={(prompt) => handleSend(prompt)} /> 
         ) : (
           <div className="max-w-4xl mx-auto space-y-4 p-6">
             {displayedMessages.map((message, index) => {
