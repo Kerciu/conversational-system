@@ -61,6 +61,7 @@ export function ChatSidebar({
   const userInitials = (userName && userName !== "User")
     ? userName.slice(0, 2).toUpperCase()
     : "?";
+  
   const filteredConversations = conversations.filter((conv) =>
     conv.title.toLowerCase().includes(searchQuery.toLowerCase()),
   )
@@ -80,12 +81,12 @@ export function ChatSidebar({
           fetch(`${API_BASE}/api/dashboard/get-email`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem("token")}`,
-            }
+            },
           }),
           fetch(`${API_BASE}/api/dashboard/get-username`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem("token")}`,
-            }
+            },
           })
         ])
 
@@ -108,7 +109,7 @@ export function ChatSidebar({
   if (isCollapsed) {
     return (
       <TooltipProvider delayDuration={0}>
-        <div className="flex h-full w-16 flex-col border-r border-border/50 bg-sidebar/80 backdrop-blur-md">
+        <div className="flex h-full w-16 flex-col border-r border-border/50 bg-sidebar/80 backdrop-blur-md shrink-0">
           {/* Decorative gradient line */}
           <div className="absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-primary/20 via-accent/10 to-transparent" />
 
@@ -204,8 +205,7 @@ export function ChatSidebar({
   }
 
   return (
-    <div className="relative flex h-full w-72 flex-col border-r border-border/50 bg-sidebar/80 backdrop-blur-md">
-      {/* Decorative gradient line */}
+    <div className="relative flex h-full w-72 shrink-0 flex-col border-r border-border/50 bg-sidebar/80 backdrop-blur-md">
       <div className="absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-primary/20 via-accent/10 to-transparent" />
 
       {/* Header */}
@@ -229,7 +229,7 @@ export function ChatSidebar({
         </Button>
       </div>
 
-      {/* New Conversation Button */}
+      {/* New Conversation */}
       <div className="p-3">
         <Button
           onClick={onNewConversation}
@@ -265,69 +265,84 @@ export function ChatSidebar({
                 {groupLabels[group]}
               </h3>
               <div className="space-y-1">
-                {convs.map((conv) => (
-                  <div
-                    key={conv.id}
-                    className={cn(
-                      "group relative flex items-center rounded-lg pr-1 transition-all duration-200",
-                      activeConversationId === conv.id ? "bg-secondary shadow-sm" : "hover:bg-secondary/50",
-                    )}
-                  >
-                    {activeConversationId === conv.id && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-gradient-to-b from-primary to-accent" />
-                    )}
+                {convs.map((conv) => {
+                  
+                  const displayTitle = conv.title.length > 25 
+                    ? conv.title.slice(0, 25) + "..." 
+                    : conv.title;
 
-                    {editingId === conv.id ? (
-                      <Input
-                        value={editingTitle}
-                        onChange={(e) => setEditingTitle(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") {
-                            setEditingId(null)
-                            setEditingTitle("")
-                          }
-                        }}
-                        className="h-9 bg-background"
-                        autoFocus
-                      />
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => onSelectConversation(conv.id)}
-                          className="flex flex-1 items-center gap-2 overflow-hidden px-2 py-2 text-left"
-                        >
-                          <MessageSquare
-                            className={cn(
-                              "h-4 w-4 shrink-0 transition-colors",
-                              activeConversationId === conv.id ? "text-primary" : "text-muted-foreground",
-                            )}
-                          />
-                          <span className="truncate text-sm">{conv.title}</span>
-                        </button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuItem
-                              onClick={() => onDeleteConversation(conv.id)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </>
-                    )}
-                  </div>
-                ))}
+                  return (
+                    <div
+                      key={conv.id}
+                      className={cn(
+                        "group/item relative flex items-center rounded-lg pr-1 transition-all duration-200",
+                        activeConversationId === conv.id ? "bg-secondary shadow-sm" : "hover:bg-secondary/50",
+                      )}
+                    >
+                      {activeConversationId === conv.id && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-gradient-to-b from-primary to-accent" />
+                      )}
+
+                      {editingId === conv.id ? (
+                        <Input
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") {
+                              setEditingId(null)
+                              setEditingTitle("")
+                            }
+                          }}
+                          className="h-9 bg-background"
+                          autoFocus
+                        />
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => onSelectConversation(conv.id)}
+                            className="flex flex-1 items-center gap-2 overflow-hidden px-2 py-2 text-left min-w-0"
+                            title={conv.title}
+                          >
+                            <MessageSquare
+                              className={cn(
+                                "h-4 w-4 shrink-0 transition-colors",
+                                activeConversationId === conv.id ? "text-primary" : "text-muted-foreground",
+                              )}
+                            />
+                            {/* CHANGED: Truncate title to 25 characters */}
+                            <span className="truncate text-sm">{displayTitle}</span>
+                          </button>
+                          
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn(
+                                  "h-7 w-7 shrink-0 transition-all z-10",
+                                  "opacity-0 group-hover/item:opacity-100", 
+                                  "data-[state=open]:opacity-100",
+                                  "focus:opacity-100"
+                                )}
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
+                              <DropdownMenuItem
+                                onClick={() => onDeleteConversation(conv.id)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )

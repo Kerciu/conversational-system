@@ -18,10 +18,11 @@ interface JobSubmitResponse {
 }
 
 interface JobStatusResponse {
-  status: "pending" | "completed" | "error" | "not_found" | "queued"
+  status: "pending" | "completed" | "error" | "not_found" | "queued" | "TASK_COMPLETED" | "TASK_FAILED"
   answer?: string
   message?: string
   messageId?: string
+  error?: string
 }
 
 interface ConversationRecord {
@@ -82,11 +83,15 @@ export const chatApi = {
     return response.json()
   },
 
-  getJobStatus: async (jobId: string): Promise<JobStatusResponse> => {
+  getJobStatus: async (jobId: string): Promise<JobStatusResponse | null> => {
     const response = await fetch(`${API_BASE}/get?jobId=${encodeURIComponent(jobId)}`, {
       method: "GET",
       headers: getAuthHeaders(),
     })
+
+    if (response.status === 404) {
+      return null;
+    }
 
     if (!response.ok && response.status !== 202) {
       throw new Error(`Failed to get job status: ${response.statusText}`)
@@ -98,48 +103,77 @@ export const chatApi = {
   pollJobStatusCancellable: (
     jobId: string,
     onUpdate: (status: JobStatusResponse) => void,
-    intervalMs: number = 1000
+    intervalMs: number = 2000
   ): { promise: Promise<JobStatusResponse>; cancel: () => void } => {
-    let interval: ReturnType<typeof setInterval> | null = null
-    let settled = false
+    let isCancelled = false
+    
+    let timeoutId: any = null
+
+    const MAX_ATTEMPTS = 30
+    let attempts = 0
 
     const cancel = () => {
-      if (interval) {
-        clearInterval(interval)
-        interval = null
+      isCancelled = true
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
       }
     }
 
     const promise = new Promise<JobStatusResponse>((resolve, reject) => {
-      interval = setInterval(async () => {
+      const checkStatus = async () => {
+        if (isCancelled) return
+
+        attempts++
+
         try {
           const status = await chatApi.getJobStatus(jobId)
+          
+          if (isCancelled) return
+          
+          if (!status) {
+             if (attempts >= MAX_ATTEMPTS) {
+                reject(new Error("Job not found (timeout)."))
+                return
+             }
+             timeoutId = setTimeout(checkStatus, intervalMs)
+             return
+          }
+
           onUpdate(status)
 
-          if (status.status === "completed" || status.status === "TASK_COMPLETED" as any) {
-            if (interval) clearInterval(interval)
-            interval = null
-            if (!settled) {
-              settled = true
-              resolve(status)
-            }
-          } else if (status.status === "error" || status.status === "TASK_FAILED" as any) {
-            if (interval) clearInterval(interval)
-            interval = null
-            if (!settled) {
-              settled = true
-              reject(new Error(status.message || "Job failed"))
-            }
+          const currentStatus = status.status;
+
+          if (currentStatus === "TASK_COMPLETED" || currentStatus === "completed") {
+            resolve(status)
+            return
+          } 
+          
+          if (currentStatus === "TASK_FAILED" || currentStatus === "error") {
+            const errorMsg = status.error || status.message || status.answer || "Job failed";
+            reject(new Error(errorMsg))
+            return
           }
+
+          if (attempts >= MAX_ATTEMPTS) {
+            reject(new Error("Timeout: Job took too long to complete (> 1 min)."))
+            return
+          }
+
+          timeoutId = setTimeout(checkStatus, intervalMs)
+
         } catch (error) {
-          if (interval) clearInterval(interval)
-          interval = null
-          if (!settled) {
-            settled = true
+          console.warn(`Polling attempt ${attempts} failed:`, error)
+
+          if (attempts >= MAX_ATTEMPTS) {
             reject(error as Error)
+          } else if (!isCancelled) {
+            timeoutId = setTimeout(checkStatus, intervalMs)
           }
         }
-      }, intervalMs)
+      }
+
+      checkStatus()
     })
 
     return { promise, cancel }

@@ -5,7 +5,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.util.Map;
 
 @RestController
@@ -25,7 +24,7 @@ public class CodingController {
             @RequestPart(value = "files", required = false) MultipartFile[] files
     ) {
         try {
-            String jobId = codingService.submitJobWithFiles(
+            CodingService.JobSubmissionResult result = codingService.submitJobWithFiles(
                     agentType, 
                     prompt, 
                     conversationId,
@@ -35,14 +34,26 @@ public class CodingController {
             );
 
             return ResponseEntity.ok(Map.of(
-                    "jobId", jobId,
+                    "jobId", result.jobId(),
                     "status", "queued",
-                    "conversationId", conversationId != null ? conversationId : "new" 
+                    "conversationId", result.conversationId()
             ));
+
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(); 
             return ResponseEntity.internalServerError()
                     .body(Map.of("error", "Error submitting job: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/get")
+    public ResponseEntity<?> get(@RequestParam("jobId") String jobId) {
+        Object result = codingService.getCodeExecutionResult(jobId);
+        if (result != null) {
+            return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.status(HttpStatus.ACCEPTED)
+                    .body(Map.of("status", "pending"));
         }
     }
 
@@ -53,17 +64,6 @@ public class CodingController {
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "Error executing code: " + e.getMessage()));
-        }
-    }
-
-    @GetMapping("/get")
-    public ResponseEntity<?> get(@RequestParam("jobId") String jobId) { 
-        Object result = codingService.getCodeExecutionResult(jobId);
-        if (result != null) {
-            return ResponseEntity.ok(result);
-        } else {
-            return ResponseEntity.status(HttpStatus.ACCEPTED)
-                    .body(Map.of("status", "pending"));
         }
     }
 }

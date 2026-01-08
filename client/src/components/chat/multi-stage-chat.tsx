@@ -26,11 +26,6 @@ const AGENT_LABELS: Record<AgentType, string> = {
   VISUALIZER_AGENT: "Visualizer",
 }
 
-const AGENT_COLORS: Record<AgentType, string> = {
-  MODELER_AGENT: "border-blue-500",
-  CODER_AGENT: "border-green-500",
-  VISUALIZER_AGENT: "border-purple-500",
-}
 
 export function MultiStageChat({
   subChats,
@@ -54,7 +49,6 @@ export function MultiStageChat({
 
   const handleSend = (message: string, files?: File[]) => {
     const hasContent = message.trim().length > 0 || (files && files.length > 0);
-    
     if (hasContent && !isLoading) {
       onSendMessage(message, activeAgentType, files)
     }
@@ -69,10 +63,10 @@ export function MultiStageChat({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header with agent name and navigation */}
-      <div className="border-b border-border px-6 py-4 flex items-center justify-center">
-        <div className="flex items-center gap-4">
-          <Button
+      {/* Header */}
+      <div className="border-b border-border px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+           <Button
             variant="ghost"
             size="icon"
             onClick={() => onNavigateToSubChat(activeSubChatIndex - 1)}
@@ -81,12 +75,16 @@ export function MultiStageChat({
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="text-center min-w-[240px]">
+        </div>
+
+        <div className="text-center">
             <h2 className="text-lg font-semibold">{AGENT_LABELS[activeAgentType]}</h2>
             <p className="text-sm text-muted-foreground">
               Stage {activeSubChatIndex + 1} of {subChats.length}
             </p>
-          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
@@ -102,7 +100,7 @@ export function MultiStageChat({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
         {activeSubChat?.messages.length === 0 && !isLoading ? (
-          <EmptyState onSelectPrompt={(prompt) => handleSend(prompt)} /> 
+          <EmptyState onSelectPrompt={(prompt) => handleSend(prompt)} />
         ) : (
           <div className="max-w-4xl mx-auto space-y-4 p-6">
             {displayedMessages.map((message, index) => {

@@ -469,10 +469,10 @@ function ChatPageContent() {
         // Get current conversation for context
         const currentConv = conversations.find(c => c.id === currentConvId)
 
-        // Wywołanie API z plikami
+        // Submit job to backend
         const submitResponse = await chatApi.submitJob({
           agentType: agentType,
-          prompt: content, // Do backendu wysyłamy czysty prompt, bez doklejonych nazw plików
+          prompt: content,
           conversationId: backendConversationId,
           acceptedModelMessageId: currentConv?.acceptedModelMessageId,
           acceptedCodeMessageId: currentConv?.acceptedCodeMessageId,
@@ -513,18 +513,20 @@ function ChatPageContent() {
             messageContent = parsed.content || ""
             generatedFiles = parsed.generated_files || {}
           }
-        } catch { }
+        } catch {
+          // Not JSON or parsing failed, use answer as-is
+        }
 
         // Create AI message with the result
         const aiMessage: Message = {
-          id: result.messageId || generateId(),
+          id: result.messageId || generateId(), // Use messageId from backend or fallback
           role: "assistant",
           content: messageContent,
           timestamp: new Date(),
           type: agentType === "MODELER_AGENT" ? "model" : agentType === "VISUALIZER_AGENT" ? "visualization" : "code",
           agentType,
           canAccept: true,
-          generatedFiles,
+          generatedFiles, // Add generated files for visualization
         }
 
         setConversations((prev) =>
@@ -643,14 +645,14 @@ function ChatPageContent() {
 
         // Create AI message with the result - use messageId from backend
         const aiMessage: Message = {
-          id: result.messageId || generateId(),
+          id: result.messageId || generateId(), // Use messageId from backend or fallback
           role: "assistant",
           content: messageContent,
           timestamp: new Date(),
           type: agentType === "MODELER_AGENT" ? "model" : agentType === "VISUALIZER_AGENT" ? "visualization" : "code",
           agentType,
           canAccept: true,
-          generatedFiles,
+          generatedFiles, // Add generated files for visualization
         }
 
         setConversations((prev) =>
