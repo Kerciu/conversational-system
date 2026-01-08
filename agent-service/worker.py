@@ -1,7 +1,9 @@
-from rabbitmq_config import connect_rabbitmq, RABBITMQ_IN_QUEUE
-from callback import callback
-import pika
 import time
+
+import pika
+import pika.exceptions
+from callback import callback
+from rabbitmq_config import RABBITMQ_IN_QUEUE, connect_rabbitmq
 
 
 def start_worker():
@@ -9,7 +11,7 @@ def start_worker():
         try:
             _, channel = connect_rabbitmq()
 
-            print(f"DEBUG: I am listening on queue: {RABBITMQ_IN_QUEUE}") 
+            print(f"DEBUG: I am listening on queue: {RABBITMQ_IN_QUEUE}")
 
             print("Connected to RabbitMQ successfully, waiting for tasks...")
 
