@@ -49,11 +49,11 @@ const getAuthHeaders = (): HeadersInit => {
 export const chatApi = {
   submitJob: async (request: JobSubmitRequest): Promise<JobSubmitResponse> => {
     const token = localStorage.getItem("token")
-    
+
     const formData = new FormData()
     formData.append("agentType", request.agentType)
     formData.append("prompt", request.prompt)
-    
+
     if (request.conversationId) formData.append("conversationId", request.conversationId)
     if (request.acceptedModelMessageId) formData.append("acceptedModelMessageId", request.acceptedModelMessageId)
     if (request.acceptedCodeMessageId) formData.append("acceptedCodeMessageId", request.acceptedCodeMessageId)
@@ -106,8 +106,8 @@ export const chatApi = {
     intervalMs: number = 2000
   ): { promise: Promise<JobStatusResponse>; cancel: () => void } => {
     let isCancelled = false
-    
-    let timeoutId: any = null
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
 
     const MAX_ATTEMPTS = 30
     let attempts = 0
@@ -128,16 +128,16 @@ export const chatApi = {
 
         try {
           const status = await chatApi.getJobStatus(jobId)
-          
+
           if (isCancelled) return
-          
+
           if (!status) {
-             if (attempts >= MAX_ATTEMPTS) {
-                reject(new Error("Job not found (timeout)."))
-                return
-             }
-             timeoutId = setTimeout(checkStatus, intervalMs)
-             return
+            if (attempts >= MAX_ATTEMPTS) {
+              reject(new Error("Job not found (timeout)."))
+              return
+            }
+            timeoutId = setTimeout(checkStatus, intervalMs)
+            return
           }
 
           onUpdate(status)
@@ -147,8 +147,8 @@ export const chatApi = {
           if (currentStatus === "TASK_COMPLETED" || currentStatus === "completed") {
             resolve(status)
             return
-          } 
-          
+          }
+
           if (currentStatus === "TASK_FAILED" || currentStatus === "error") {
             const errorMsg = status.error || status.message || status.answer || "Job failed";
             reject(new Error(errorMsg))

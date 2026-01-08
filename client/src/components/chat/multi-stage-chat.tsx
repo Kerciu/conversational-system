@@ -30,7 +30,7 @@ const AGENT_LABELS: Record<AgentType, string> = {
 export function MultiStageChat({
   subChats,
   activeSubChatIndex,
-  conversationId,
+  conversationId: _conversationId,
   onSendMessage,
   onAcceptMessage,
   onNavigateToSubChat,
@@ -66,7 +66,7 @@ export function MultiStageChat({
       {/* Header */}
       <div className="border-b border-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-           <Button
+          <Button
             variant="ghost"
             size="icon"
             onClick={() => onNavigateToSubChat(activeSubChatIndex - 1)}
@@ -78,10 +78,10 @@ export function MultiStageChat({
         </div>
 
         <div className="text-center">
-            <h2 className="text-lg font-semibold">{AGENT_LABELS[activeAgentType]}</h2>
-            <p className="text-sm text-muted-foreground">
-              Stage {activeSubChatIndex + 1} of {subChats.length}
-            </p>
+          <h2 className="text-lg font-semibold">{AGENT_LABELS[activeAgentType]}</h2>
+          <p className="text-sm text-muted-foreground">
+            Stage {activeSubChatIndex + 1} of {subChats.length}
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
