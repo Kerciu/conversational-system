@@ -36,7 +36,7 @@ export function ChatInput({
   }, [message])
 
   const handleSend = () => {
-    if ((message.trim() || files.length > 0) && !isLoading) {
+    if (message.trim() && !isLoading) {
       onSend(message.trim(), files)
       setMessage("")
       setFiles([])
@@ -76,14 +76,14 @@ export function ChatInput({
   return (
     <TooltipProvider>
       <div className="relative">
-        {/* Ukryty input do plików */}
+        {/* File input (hidden) */}
         <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            multiple
-            onChange={handleFileChange}
-            accept=".pdf,.txt,.csv,.json,.md"
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          multiple
+          onChange={handleFileChange}
+          accept=".pdf,.txt,.csv,.json,.md"
         />
 
         <div
@@ -106,21 +106,21 @@ export function ChatInput({
             isFocused ? "border-primary/40 shadow-lg" : "border-border/50",
           )}
         >
-          {/* NOWA SEKCJA: Podgląd załączonych plików */}
+          {/* File preview section */}
           {files.length > 0 && (
             <div className="flex flex-wrap gap-2 px-4 pt-3 pb-1 border-b border-border/30">
-                {files.map((file, index) => (
-                    <div key={index} className="flex items-center gap-1 bg-secondary/50 text-secondary-foreground text-xs px-2 py-1 rounded-md animate-in fade-in slide-in-from-bottom-1">
-                        <FileText className="h-3 w-3 opacity-70" />
-                        <span className="max-w-[150px] truncate" title={file.name}>{file.name}</span>
-                        <button 
-                            onClick={() => removeFile(index)}
-                            className="ml-1 hover:text-destructive transition-colors"
-                        >
-                            <X className="h-3 w-3" />
-                        </button>
-                    </div>
-                ))}
+              {files.map((file, index) => (
+                <div key={index} className="flex items-center gap-1 bg-secondary/50 text-secondary-foreground text-xs px-2 py-1 rounded-md animate-in fade-in slide-in-from-bottom-1">
+                  <FileText className="h-3 w-3 opacity-70" />
+                  <span className="max-w-[150px] truncate" title={file.name}>{file.name}</span>
+                  <button
+                    onClick={() => removeFile(index)}
+                    className="ml-1 hover:text-destructive transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
@@ -158,11 +158,11 @@ export function ChatInput({
             {/* Send button */}
             <Button
               onClick={handleSend}
-              disabled={(!message.trim() && files.length === 0) || isLoading || isOverLimit}
+              disabled={!message.trim() || isLoading || isOverLimit}
               size="icon"
               className={cn(
                 "h-9 w-9 shrink-0 rounded-xl transition-all duration-300 border-0",
-                (message.trim() || files.length > 0) && !isOverLimit
+                message.trim() && !isOverLimit
                   ? "bg-gradient-to-r from-primary to-accent hover:opacity-90 glow-primary btn-glow"
                   : "bg-secondary text-muted-foreground",
               )}

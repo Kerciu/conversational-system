@@ -61,7 +61,7 @@ export function ChatSidebar({
   const userInitials = (userName && userName !== "User")
     ? userName.slice(0, 2).toUpperCase()
     : "?";
-  
+
   const filteredConversations = conversations.filter((conv) =>
     conv.title.toLowerCase().includes(searchQuery.toLowerCase()),
   )
@@ -266,9 +266,9 @@ export function ChatSidebar({
               </h3>
               <div className="space-y-1">
                 {convs.map((conv) => {
-                  
-                  const displayTitle = conv.title.length > 25 
-                    ? conv.title.slice(0, 25) + "..." 
+
+                  const displayTitle = conv.title.length > 25
+                    ? conv.title.slice(0, 25) + "..."
                     : conv.title;
 
                   return (
@@ -309,10 +309,10 @@ export function ChatSidebar({
                                 activeConversationId === conv.id ? "text-primary" : "text-muted-foreground",
                               )}
                             />
-                            {/* CHANGED: Truncate title to 25 characters */}
+                            {/* Max 25 char title */}
                             <span className="truncate text-sm">{displayTitle}</span>
                           </button>
-                          
+
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -320,7 +320,7 @@ export function ChatSidebar({
                                 size="icon"
                                 className={cn(
                                   "h-7 w-7 shrink-0 transition-all z-10",
-                                  "opacity-0 group-hover/item:opacity-100", 
+                                  "opacity-0 group-hover/item:opacity-100",
                                   "data-[state=open]:opacity-100",
                                   "focus:opacity-100"
                                 )}

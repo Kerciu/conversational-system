@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8080/api/jobs"
+const API_BASE = "http://localhost:8080/api/test"
 const CONVERSATIONS_API = "http://localhost:8080/api/conversations"
 
 interface JobSubmitRequest {
@@ -18,11 +18,10 @@ interface JobSubmitResponse {
 }
 
 interface JobStatusResponse {
-  status: "pending" | "completed" | "error" | "not_found" | "queued" | "TASK_COMPLETED" | "TASK_FAILED"
+  status: "pending" | "completed" | "error" | "not_found"
   answer?: string
   message?: string
   messageId?: string
-  error?: string
 }
 
 interface ConversationRecord {
@@ -38,19 +37,25 @@ interface ConversationHistory {
   messages: Array<{ id: string; role: string; content: string }>
 }
 
-const getAuthHeaders = (): HeadersInit => {
+const getAuthHeaders = (isMultipart: boolean = false): HeadersInit => {
   const token = localStorage.getItem("token")
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  const headers: HeadersInit = {}
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
   }
+
+  if (!isMultipart) {
+    headers["Content-Type"] = "application/json"
+  }
+
+  return headers
 }
 
 export const chatApi = {
   submitJob: async (request: JobSubmitRequest): Promise<JobSubmitResponse> => {
-    const token = localStorage.getItem("token")
-
     const formData = new FormData()
+
     formData.append("agentType", request.agentType)
     formData.append("prompt", request.prompt)
 
@@ -64,34 +69,24 @@ export const chatApi = {
       })
     }
 
-    const headers: HeadersInit = {}
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`
-    }
-
-    const response = await fetch(`${API_BASE}/submit`, {
+    const response = await fetch(`${API_BASE}/submit-job`, {
       method: "POST",
-      headers: headers,
+      headers: getAuthHeaders(true),
       body: formData,
     })
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => response.statusText)
-      throw new Error(`Failed to submit job: ${response.status} ${errorText}`)
+      throw new Error(`Failed to submit job: ${response.statusText}`)
     }
 
     return response.json()
   },
 
-  getJobStatus: async (jobId: string): Promise<JobStatusResponse | null> => {
-    const response = await fetch(`${API_BASE}/get?jobId=${encodeURIComponent(jobId)}`, {
+  getJobStatus: async (jobId: string): Promise<JobStatusResponse> => {
+    const response = await fetch(`${API_BASE}/get-job?jobId=${encodeURIComponent(jobId)}`, {
       method: "GET",
       headers: getAuthHeaders(),
     })
-
-    if (response.status === 404) {
-      return null;
-    }
 
     if (!response.ok && response.status !== 202) {
       throw new Error(`Failed to get job status: ${response.statusText}`)
@@ -103,82 +98,54 @@ export const chatApi = {
   pollJobStatusCancellable: (
     jobId: string,
     onUpdate: (status: JobStatusResponse) => void,
-    intervalMs: number = 2000
+    intervalMs: number = 1000
   ): { promise: Promise<JobStatusResponse>; cancel: () => void } => {
-    let isCancelled = false
-
-    let timeoutId: ReturnType<typeof setTimeout> | null = null
-
-    const MAX_ATTEMPTS = 30
-    let attempts = 0
+    let interval: ReturnType<typeof setInterval> | null = null
+    let settled = false
 
     const cancel = () => {
-      isCancelled = true
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-        timeoutId = null
+      if (interval) {
+        clearInterval(interval)
+        interval = null
       }
     }
 
     const promise = new Promise<JobStatusResponse>((resolve, reject) => {
-      const checkStatus = async () => {
-        if (isCancelled) return
-
-        attempts++
-
+      interval = setInterval(async () => {
         try {
           const status = await chatApi.getJobStatus(jobId)
-
-          if (isCancelled) return
-
-          if (!status) {
-            if (attempts >= MAX_ATTEMPTS) {
-              reject(new Error("Job not found (timeout)."))
-              return
-            }
-            timeoutId = setTimeout(checkStatus, intervalMs)
-            return
-          }
-
           onUpdate(status)
 
-          const currentStatus = status.status;
-
-          if (currentStatus === "TASK_COMPLETED" || currentStatus === "completed") {
-            resolve(status)
-            return
+          if (status.status === "completed") {
+            if (interval) clearInterval(interval)
+            interval = null
+            if (!settled) {
+              settled = true
+              resolve(status)
+            }
+          } else if (status.status === "error") {
+            if (interval) clearInterval(interval)
+            interval = null
+            if (!settled) {
+              settled = true
+              reject(new Error(status.message || "Job failed"))
+            }
           }
-
-          if (currentStatus === "TASK_FAILED" || currentStatus === "error") {
-            const errorMsg = status.error || status.message || status.answer || "Job failed";
-            reject(new Error(errorMsg))
-            return
-          }
-
-          if (attempts >= MAX_ATTEMPTS) {
-            reject(new Error("Timeout: Job took too long to complete (> 1 min)."))
-            return
-          }
-
-          timeoutId = setTimeout(checkStatus, intervalMs)
-
         } catch (error) {
-          console.warn(`Polling attempt ${attempts} failed:`, error)
-
-          if (attempts >= MAX_ATTEMPTS) {
+          if (interval) clearInterval(interval)
+          interval = null
+          if (!settled) {
+            settled = true
             reject(error as Error)
-          } else if (!isCancelled) {
-            timeoutId = setTimeout(checkStatus, intervalMs)
           }
         }
-      }
-
-      checkStatus()
+      }, intervalMs)
     })
 
     return { promise, cancel }
   },
 
+  // Conversation management
   getConversations: async (): Promise<ConversationRecord[]> => {
     const response = await fetch(CONVERSATIONS_API, {
       method: "GET",

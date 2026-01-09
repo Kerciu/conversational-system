@@ -26,11 +26,10 @@ const AGENT_LABELS: Record<AgentType, string> = {
   VISUALIZER_AGENT: "Visualizer",
 }
 
-
 export function MultiStageChat({
   subChats,
   activeSubChatIndex,
-  conversationId: _conversationId,
+  conversationId,
   onSendMessage,
   onAcceptMessage,
   onNavigateToSubChat,
@@ -41,15 +40,14 @@ export function MultiStageChat({
 
   const activeSubChat = subChats[activeSubChatIndex]
   const activeAgentType = activeSubChat?.agentType || "MODELER_AGENT"
-  const displayedMessages = (activeSubChat?.messages || []).filter(m => !isLoading || !m.retry)
+  const displayedMessages = (activeSubChat?.messages || []).filter((m) => !isLoading || !m.retry)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [activeSubChat?.messages, isLoading])
 
   const handleSend = (message: string, files?: File[]) => {
-    const hasContent = message.trim().length > 0 || (files && files.length > 0);
-    if (hasContent && !isLoading) {
+    if ((message.trim() || (files && files.length > 0)) && !isLoading) {
       onSendMessage(message, activeAgentType, files)
     }
   }
@@ -63,9 +61,9 @@ export function MultiStageChat({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="border-b border-border px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      {/* Header with agent name and navigation */}
+      <div className="border-b border-border px-6 py-4 flex items-center justify-center">
+        <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
@@ -75,16 +73,12 @@ export function MultiStageChat({
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-        </div>
-
-        <div className="text-center">
-          <h2 className="text-lg font-semibold">{AGENT_LABELS[activeAgentType]}</h2>
-          <p className="text-sm text-muted-foreground">
-            Stage {activeSubChatIndex + 1} of {subChats.length}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
+          <div className="text-center min-w-[240px]">
+            <h2 className="text-lg font-semibold">{AGENT_LABELS[activeAgentType]}</h2>
+            <p className="text-sm text-muted-foreground">
+              Stage {activeSubChatIndex + 1} of {subChats.length}
+            </p>
+          </div>
           <Button
             variant="ghost"
             size="icon"
@@ -100,7 +94,9 @@ export function MultiStageChat({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
         {activeSubChat?.messages.length === 0 && !isLoading ? (
-          <EmptyState onSelectPrompt={(prompt) => handleSend(prompt)} />
+          <EmptyState onSelectPrompt={function (prompt: string): void {
+            throw new Error("Function not implemented.")
+          }} />
         ) : (
           <div className="max-w-4xl mx-auto space-y-4 p-6">
             {displayedMessages.map((message, index) => {
@@ -111,7 +107,10 @@ export function MultiStageChat({
 
               return (
                 <div key={message.id}>
-                  <ChatMessage message={message} onAction={(action) => onMessageAction?.(message, action)} />
+                  <ChatMessage
+                    message={message}
+                    onAction={(action) => onMessageAction?.(message, action)}
+                  />
                   {isLatestAssistant && message.canAccept && (
                     <div className="mt-4 flex justify-end">
                       <Button

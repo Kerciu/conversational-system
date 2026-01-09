@@ -68,12 +68,12 @@ function ChatPageContent() {
     }
 
     loadConversations()
-  }, [activeConversationId, toast])
+  }, [toast])
 
   // Removed generic conversation-status polling. We'll poll by jobId when needed.
 
   // Load conversation history when selecting a conversation
-  const loadConversationHistory = useCallback(async (conversationId: string, agentType: AgentType) => {
+  const loadConversationHistory = async (conversationId: string, agentType: AgentType) => {
     try {
       const history = await chatApi.getConversationHistory(conversationId, agentType)
 
@@ -82,6 +82,7 @@ function ChatPageContent() {
         let messageType: Message["type"] = msg.role === "user" ? "text" : agentType === "MODELER_AGENT" ? "model" : "code"
         let generatedFiles: { [filename: string]: string } | undefined = undefined
 
+        // Try to parse as visualization report
         if (msg.role === "assistant" && agentType === "VISUALIZER_AGENT") {
           try {
             const parsed = JSON.parse(msg.content)
@@ -91,7 +92,7 @@ function ChatPageContent() {
               messageType = "visualization"
             }
           } catch {
-            // ignore
+            // JSON parse failed - content is plain text, use as-is (expected for non-visualization messages)
           }
         }
 
@@ -117,7 +118,7 @@ function ChatPageContent() {
       })
       return []
     }
-  }, [toast])
+  }
 
   const handleNewConversation = useCallback(() => {
     // Cancel any ongoing polling when leaving current conversation
@@ -246,6 +247,7 @@ function ChatPageContent() {
 
     // If last job ended with error, show an error bubble with Retry on the active stage
     if (hadErrorFlag && conversation?.conversationId) {
+      const agentTypes: AgentType[] = ["MODELER_AGENT", "CODER_AGENT", "VISUALIZER_AGENT"]
       // Ensure history is present to know active index
       if (needsInitialLoad) {
         // History already loaded above; appendActiveIndex reflects active
@@ -378,7 +380,7 @@ function ChatPageContent() {
         activePollCancelRef.current = null
       }
     }
-  }, [conversations, loadConversationHistory])
+  }, [conversations])
 
   const handleDeleteConversation = useCallback(
     async (id: string) => {
@@ -406,22 +408,10 @@ function ChatPageContent() {
 
   const handleSendMessage = useCallback(
     async (content: string, agentType: AgentType, files?: File[]) => {
-
-      // Build message content including file names if files are attached
-      let displayContent = content;
-      if (files && files.length > 0) {
-        const fileNames = files.map(f => f.name).join(", ");
-        if (!displayContent.trim()) {
-          displayContent = `[Sent files: ${fileNames}]`;
-        } else {
-          displayContent += `\n\n[Attached: ${fileNames}]`;
-        }
-      }
-
       const userMessage: Message = {
         id: generateId(),
         role: "user",
-        content: displayContent,
+        content,
         timestamp: new Date(),
         type: "text",
         agentType,

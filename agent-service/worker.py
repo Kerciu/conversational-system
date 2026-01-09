@@ -1,7 +1,6 @@
 import time
 
 import pika
-import pika.exceptions
 from callback import callback
 from rabbitmq_config import RABBITMQ_IN_QUEUE, connect_rabbitmq
 
@@ -10,9 +9,6 @@ def start_worker():
     while True:
         try:
             _, channel = connect_rabbitmq()
-
-            print(f"DEBUG: I am listening on queue: {RABBITMQ_IN_QUEUE}")
-
             print("Connected to RabbitMQ successfully, waiting for tasks...")
 
             channel.basic_qos(prefetch_count=1)
