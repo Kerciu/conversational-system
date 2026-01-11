@@ -407,7 +407,7 @@ function ChatPageContent() {
   )
 
   const handleSendMessage = useCallback(
-    async (content: string, agentType: AgentType) => {
+    async (content: string, agentType: AgentType, files?: File[]) => {
       const userMessage: Message = {
         id: generateId(),
         role: "user",
@@ -464,6 +464,7 @@ function ChatPageContent() {
           conversationId: backendConversationId,
           acceptedModelMessageId: currentConv?.acceptedModelMessageId,
           acceptedCodeMessageId: currentConv?.acceptedCodeMessageId,
+          files: files,
         })
 
         if (submitResponse.status !== "ok" || !submitResponse.jobId) {

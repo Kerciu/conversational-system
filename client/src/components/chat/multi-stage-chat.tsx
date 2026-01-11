@@ -13,7 +13,7 @@ interface MultiStageChatProps {
   subChats: SubChat[]
   activeSubChatIndex: number
   conversationId?: string
-  onSendMessage: (message: string, agentType: AgentType) => void
+  onSendMessage: (message: string, agentType: AgentType, files?: File[]) => void
   onAcceptMessage: (agentType: AgentType, message: Message) => void
   onNavigateToSubChat: (index: number) => void
   isLoading?: boolean
@@ -24,12 +24,6 @@ const AGENT_LABELS: Record<AgentType, string> = {
   MODELER_AGENT: "Mathematic Modeler",
   CODER_AGENT: "Python Coder",
   VISUALIZER_AGENT: "Visualizer",
-}
-
-const AGENT_COLORS: Record<AgentType, string> = {
-  MODELER_AGENT: "border-blue-500",
-  CODER_AGENT: "border-green-500",
-  VISUALIZER_AGENT: "border-purple-500",
 }
 
 export function MultiStageChat({
@@ -46,15 +40,15 @@ export function MultiStageChat({
 
   const activeSubChat = subChats[activeSubChatIndex]
   const activeAgentType = activeSubChat?.agentType || "MODELER_AGENT"
-  const displayedMessages = (activeSubChat?.messages || []).filter(m => !isLoading || !m.retry)
+  const displayedMessages = (activeSubChat?.messages || []).filter((m) => !isLoading || !m.retry)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [activeSubChat?.messages, isLoading])
 
-  const handleSend = (message: string) => {
-    if (message.trim() && !isLoading) {
-      onSendMessage(message, activeAgentType)
+  const handleSend = (message: string, files?: File[]) => {
+    if ((message.trim() || (files && files.length > 0)) && !isLoading) {
+      onSendMessage(message, activeAgentType, files)
     }
   }
 
@@ -113,7 +107,10 @@ export function MultiStageChat({
 
               return (
                 <div key={message.id}>
-                  <ChatMessage message={message} onAction={(action) => onMessageAction?.(message, action)} />
+                  <ChatMessage
+                    message={message}
+                    onAction={(action) => onMessageAction?.(message, action)}
+                  />
                   {isLatestAssistant && message.canAccept && (
                     <div className="mt-4 flex justify-end">
                       <Button

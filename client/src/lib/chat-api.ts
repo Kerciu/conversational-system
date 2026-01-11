@@ -7,6 +7,7 @@ interface JobSubmitRequest {
   conversationId?: string
   acceptedModelMessageId?: string
   acceptedCodeMessageId?: string
+  files?: File[]
 }
 
 interface JobSubmitResponse {
@@ -36,20 +37,42 @@ interface ConversationHistory {
   messages: Array<{ id: string; role: string; content: string }>
 }
 
-const getAuthHeaders = (): HeadersInit => {
+const getAuthHeaders = (isMultipart: boolean = false): HeadersInit => {
   const token = localStorage.getItem("token")
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  const headers: HeadersInit = {}
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
   }
+
+  if (!isMultipart) {
+    headers["Content-Type"] = "application/json"
+  }
+
+  return headers
 }
 
 export const chatApi = {
   submitJob: async (request: JobSubmitRequest): Promise<JobSubmitResponse> => {
+    const formData = new FormData()
+
+    formData.append("agentType", request.agentType)
+    formData.append("prompt", request.prompt)
+
+    if (request.conversationId) formData.append("conversationId", request.conversationId)
+    if (request.acceptedModelMessageId) formData.append("acceptedModelMessageId", request.acceptedModelMessageId)
+    if (request.acceptedCodeMessageId) formData.append("acceptedCodeMessageId", request.acceptedCodeMessageId)
+
+    if (request.files && request.files.length > 0) {
+      request.files.forEach((file) => {
+        formData.append("files", file)
+      })
+    }
+
     const response = await fetch(`${API_BASE}/submit-job`, {
       method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(request),
+      headers: getAuthHeaders(true),
+      body: formData,
     })
 
     if (!response.ok) {
@@ -72,7 +95,6 @@ export const chatApi = {
     return response.json()
   },
 
-  // Cancellable variant: returns a cancel() handle and a promise
   pollJobStatusCancellable: (
     jobId: string,
     onUpdate: (status: JobStatusResponse) => void,
