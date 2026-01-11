@@ -108,7 +108,7 @@ export function ChatMessage({ message, onAction }: ChatMessageProps) {
     })
   }
 
-  const resizeImagesInPdf = (node: any) => {
+  const resizeImagesInPdf = (node: unknown) => {
     if (Array.isArray(node)) {
       node.forEach(subNode => resizeImagesInPdf(subNode))
     } else if (typeof node === 'object' && node !== null) {
