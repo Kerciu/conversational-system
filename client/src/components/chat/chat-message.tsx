@@ -97,7 +97,6 @@ export function ChatMessage({ message, onAction }: ChatMessageProps) {
       Object.values(blobUrls).forEach(url => URL.revokeObjectURL(url))
     }
   }, [blobUrls])
-  const isUser = message.role === "user"
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content)
