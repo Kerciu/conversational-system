@@ -1,12 +1,21 @@
-from rabbitmq_config import RABBITMQ_OUT_QUEUE
-from agents.agent_registry import get_agent_class
-import pika
-import json
 import asyncio
+import json
+
+import pika
+from agents.agent_registry import get_agent_class
+from file_manager import save_files_to_disk
+from rabbitmq_config import RABBITMQ_OUT_QUEUE
 
 
 def callback(ch, method, properties, body):
     try:
+        # print(f"DEBUG: Raw body received (first 200 chars): {body[:200]}")
+        # message_data = json.loads(body)
+        # print(f"DEBUG: Keys in JSON: {list(message_data.keys())}")
+        # files_check = message_data.get("files")
+        # print(f"DEBUG: 'files' value type: {type(files_check)}")
+        # if isinstance(files_check, list):
+        #     print(f"DEBUG: 'files' list length: {len(files_check)}")
         message_data = json.loads(body)
         job_id = message_data.get("jobId")
         agent_type_str = message_data.get("agentType")
@@ -15,6 +24,7 @@ def callback(ch, method, properties, body):
         context = message_data.get("context", "")
         accepted_model = message_data.get("acceptedModel", "")
         accepted_code = message_data.get("acceptedCode", "")
+        files_data = message_data.get("files", [])
 
         if not all([job_id, agent_type_str, prompt]):
             print(f"Error: Incomplete message, rejecting: {message_data}")
@@ -28,6 +38,10 @@ def callback(ch, method, properties, body):
             print(f"Accepted model provided (length: {len(accepted_model)})")
         if accepted_code:
             print(f"Accepted code provided (length: {len(accepted_code)})")
+        file_paths = []
+        if files_data:
+            print(f"Received {len(files_data)} file(s). Saving to disk for RAG...")
+            file_paths = save_files_to_disk(files_data, job_id)
 
         AgentClass = get_agent_class(agent_type_str)
 
@@ -45,6 +59,7 @@ def callback(ch, method, properties, body):
                 prompt,
                 job_id,
                 context=context,
+                file_paths=file_paths,
                 conversation_history=conversation_history,
                 accepted_model=accepted_model,
                 accepted_code=accepted_code,
@@ -76,7 +91,6 @@ def callback(ch, method, properties, body):
 
         traceback.print_exc()
 
-        # Wyślij wiadomość o błędzie do backendu
         try:
             message_data = json.loads(body)
             job_id = message_data.get("jobId")

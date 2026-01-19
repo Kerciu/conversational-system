@@ -39,10 +39,7 @@ public class JobService {
         if (conversationId == null) {
             Conversation newConversation = conversationService.createConversation(
                     user,
-                    jobDescriptionDto.getPrompt().substring(0, Math.min(20, jobDescriptionDto.getPrompt().length())) // TODO
-                                                                                                                     // improve
-                                                                                                                     // title
-            );
+                    jobDescriptionDto.getPrompt().substring(0, Math.min(20, jobDescriptionDto.getPrompt().length())));
             conversationId = newConversation.getId();
             System.out.println("Created new conversation: " + conversationId);
         }
@@ -68,7 +65,20 @@ public class JobService {
         message.put("prompt", jobDescriptionDto.getPrompt());
         message.put("conversationHistory", conversationHistory);
 
-        // Add context for multi-stage workflow - resolve from messageId if provided
+        if (jobDescriptionDto.getFiles() != null && !jobDescriptionDto.getFiles().isEmpty()) {
+            List<Map<String, String>> filesPayload = jobDescriptionDto.getFiles().stream()
+                    .map(file -> {
+                        Map<String, String> fileMap = new HashMap<>();
+                        fileMap.put("name", file.getName());
+                        fileMap.put("content_base64", file.getContentBase64());
+                        return fileMap;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+
+            message.put("files", filesPayload);
+            System.out.println("Attached " + filesPayload.size() + " files to job " + jobDescriptionDto.getJobId());
+        }
+
         String acceptedModel = jobDescriptionDto.getAcceptedModel();
         if (acceptedModel == null && jobDescriptionDto.getAcceptedModelMessageId() != null) {
             acceptedModel = conversationService.getMessageContent(jobDescriptionDto.getAcceptedModelMessageId());

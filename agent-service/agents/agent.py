@@ -1,6 +1,7 @@
-from abc import abstractmethod, ABC
-from typing import List, Dict, Any
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List
+
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 
 class Agent(ABC):
@@ -51,7 +52,8 @@ class Agent(ABC):
         prompt: str,
         job_id: str,
         context: str = "",
-        conversation_history: List[Dict[str, Any]] = None,
+        file_paths: List[str] | None = None,
+        conversation_history: List[Dict[str, Any]] | None = None,
         accepted_model: str = "",
         accepted_code: str = "",
     ) -> dict:

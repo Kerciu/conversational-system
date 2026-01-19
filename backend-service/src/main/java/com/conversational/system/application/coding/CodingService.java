@@ -25,8 +25,7 @@ public class CodingService {
         Map<String, String> message = Map.of(
                 "jobId", jobId,
                 "taskType", "coding",
-                "code", code
-        );
+                "code", code);
 
         rabbitTemplate.convertAndSend(codeExecutionQueue, message);
 

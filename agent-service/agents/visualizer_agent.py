@@ -1,16 +1,16 @@
+import base64
+import json
+import os
+import time
+import uuid
+from typing import Any, Dict, List, Tuple
+
+import pika
+from agents.agent import Agent
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
-from typing import List, Dict, Any, Tuple
-import pika
-import json
-import time
-import os
-import uuid
-import base64
-
-from agents.agent import Agent
 
 
 class VisualizerAgent(Agent):
@@ -182,6 +182,7 @@ Zasady:
         prompt: str,
         job_id: str,
         context: str = "",
+        file_paths: List[str] = [],
         conversation_history: List[Dict[str, Any]] = None,
         accepted_model: str = "",
         accepted_code: str = "",
@@ -281,7 +282,7 @@ Zasady:
         # Otherwise use simple template for follow-up requests
         if execution_output:
             user_template = """=== KONTEKST PROBLEMU (do etykiet i tytułów) ===
-{context}
+            {context}
 
 === WYNIKI URUCHOMIENIA KODU (dane do wykresów) ===
 {input}

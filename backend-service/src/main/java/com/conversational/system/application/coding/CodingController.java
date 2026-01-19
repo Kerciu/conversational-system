@@ -20,7 +20,8 @@ public class CodingController {
             Map<String, String> result = codingService.executeCode(executionDto.getCode());
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", "Error submitting job: " + e.getMessage()));
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "Error submitting job: " + e.getMessage()));
         }
     }
 

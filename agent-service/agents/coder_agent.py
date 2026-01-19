@@ -1,8 +1,9 @@
+from typing import Any, Dict, List
+
 from agents.agent import Agent
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from typing import List, Dict, Any
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 
 class CoderAgent(Agent):
@@ -40,7 +41,8 @@ class CoderAgent(Agent):
         prompt: str,
         job_id: str,
         context: str = "",
-        conversation_history: List[Dict[str, Any]] = None,
+        file_paths: List[str] | None = None,
+        conversation_history: List[Dict[str, Any]] | None = None,
         accepted_model: str = "",
         accepted_code: str = "",
     ) -> dict:

@@ -1,7 +1,8 @@
-from rabbitmq_config import connect_rabbitmq, RABBITMQ_IN_QUEUE
-from callback import callback
-import pika
 import time
+
+import pika
+from callback import callback
+from rabbitmq_config import RABBITMQ_IN_QUEUE, connect_rabbitmq
 
 
 def start_worker():
