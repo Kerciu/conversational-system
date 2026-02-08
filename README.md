@@ -1,7 +1,14 @@
 # 🧑‍💻🗨️🔮 Decisio.ai | Conversational System 
 This project builds a smart system that takes a text description of a linear problem and extra documents (using RAG) to automatically create a mathematical model and runnable Python code. It runs the code, shows visualizations of the results, and lets users ask questions for interactive analysis. and lets users ask questions for interactive analysis. Users can also request changes at any stage.
 
-***
+## 🎥 Project Demo
+
+Registrarion, login & account verification <br/>
+<video controls src="docs/registration_demo.mp4" title="registration_demo"></video>
+
+Describing a problem, uploading documents, creating a mathematical model & downloading result visualization <br/>
+<video controls src="docs/conversation_demo.mp4" title="conversation_demo"></video>
+
 ## ⚙️ Core Functionalities 
 
 - **Interactive Modeling**: Translates natural language into formal math models with professional rendering and chat-based refinement.
@@ -10,14 +17,6 @@ This project builds a smart system that takes a text description of a linear pro
 - **Secure Sandbox**: Runs AI-generated code in an isolated Docker environment with no network access and strict resource limits.
 - **Reporting & Visualization**: Delivers plain-English insights, automated charts, and downloadable PDF summaries.
 - **Identity & Security**: Secure access via JWT/OAuth2 (Google/GitHub) with email activation and strict data isolation.
-
-## 🎥 Project Demo
-#### Login & registration
-#### Create new problem
-#### Upload documents
-#### Chat with AI agents
-#### View and download results
-#### Account management
 
 ## 🔧 Tech Stack
 [![My Skills](https://skillicons.dev/icons?i=java,spring,python,nextjs,postgresql,redis,rabbitmq,docker,git,githubactions)](https://skillicons.dev)
