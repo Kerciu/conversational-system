@@ -1,5 +1,13 @@
 # Decisio.ai | Conversational System 🧑‍💻🗨️🔮
-This project builds a smart system that takes a text description of a linear problem and extra documents (using RAG) to automatically create a mathematical model and runnable Python code. It runs the code, shows visualizations of the results, and lets users ask questions for interactive analysis. and lets users ask questions for interactive analysis. Users can also request changes at any stage.
+
+[![Contributors](https://img.shields.io/github/contributors/Kerciu/conversational-system?color=red)](https://github.com/Kerciu/conversational-system/graphs/contributors)
+[![Commit Activity](https://img.shields.io/badge/Commits-📈%20View%20Graph-orange)](https://github.com/Kerciu/conversational-system/graphs/commit-activity)
+[![Repo Size](https://img.shields.io/github/repo-size/Kerciu/conversational-system?color=yellow)](https://github.com/Kerciu/conversational-system)
+[![Lines of Code](https://img.shields.io/badge/Lines%20of%20Code-~2.5k-green?logo=git)](https://github.com/Kerciu/conversational-system)
+[![License](https://img.shields.io/github/license/Kerciu/conversational-system?color=blue)](LICENSE)
+
+
+This project builds a smart system that takes a text description of a linear problem and extra documents (using RAG) to automatically create a mathematical model and runnable Python code. It runs the code, shows visualizations of the results, and lets users ask questions for interactive analysis. Users can also request changes at any stage.
 
 ## 🎥 Project Demo
 
@@ -60,13 +68,18 @@ Prerequisites:
 - Docker Engine
 - Docker Compose
 
-First download the repository:
+First clone the repository:
 ```bash 
     git clone https://github.com/Kerciu/conversational-system.git
     cd conversational-system
 ```
 Take a look at `.env.example` and create `.env` file in the root directory with your API keys.
-You can start the application by running:
+```bash
+    cp .env.example .env
+    # Edit .env with your API keys (OpenAI, SMTP, etc.)
+```
+
+Start the application by running:
 ```bash
     docker compose up --build
 ```
