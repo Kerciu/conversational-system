@@ -4,10 +4,11 @@ This project builds a smart system that takes a text description of a linear pro
 ## 🎥 Project Demo
 
 ### Registrarion, login & account verification <br/>
-https://github.com/Kerciu/conversational-system/blob/docs-and-readme/docs/registration_demo.mp4
+https://github.com/user-attachments/assets/f370e988-7ab6-43da-9ece-f2560fe14d29
+
 
 ### Describing a problem, uploading documents, creating a mathematical model & downloading result visualization <br/>
-https://github.com/Kerciu/conversational-system/blob/docs-and-readme/docs/conversation_demo.mp4
+https://github.com/user-attachments/assets/680845dd-1ca8-49ea-bd14-804f434b8494
 
 ## ⚙️ Core Functionalities 
 
