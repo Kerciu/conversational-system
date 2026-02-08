@@ -4,10 +4,15 @@ This project builds a smart system that takes a text description of a linear pro
 ## 🎥 Project Demo
 
 ### Registrarion, login & account verification <br/>
-<video controls src="docs/registration_demo.mp4" title="registration_demo"></video>
+<video controls width="100%" src="https://youtu.be/mfuGpx-z5pg" title="registration_demo">
+  There was an error loading the video.
+</video>
 
 ### Describing a problem, uploading documents, creating a mathematical model & downloading result visualization <br/>
-<video controls src="docs/conversation_demo.mp4" title="conversation_demo"></video>
+<!-- <video controls width="100%" src="https://drive.google.com/file/d/1PWCthPMyMN7FADG15-nqs4L3w9EMVESG/view?usp=sharing" title="conversation_demo"> -->
+<video controls width="100%" src="https://youtu.be/ZaUD2168_uw" title="conversation_demo">
+  There was an error loading the video.
+</video>
 
 ## ⚙️ Core Functionalities 
 
