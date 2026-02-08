@@ -1,31 +1,15 @@
 # 🧑‍💻🗨️🔮 Decisio.ai | Conversational System 
 This project builds a smart system that takes a text description of a linear problem and extra documents (using RAG) to automatically create a mathematical model and runnable Python code. It runs the code, shows visualizations of the results, and lets users ask questions for interactive analysis. and lets users ask questions for interactive analysis. Users can also request changes at any stage.
 
+***
 ## ⚙️ Core Functionalities 
 
-### Problem Modeling
-- **Natural Language Translation**: Translates business descriptions into formal math (variables, objective functions, constraints).
-- **Mathematical Rendering**: Displays models using professional notation for easy verification and review.
-- **Chat-Based Refinement**: Allows users to adjust the model or add new constraints through conversation.
-
-### Knowledge Extraction
-- **Information Retrieval**: Extracts specific data and limits from uploaded documents like PDFs or text files.
-- **Data Identification**: Automatically identifies numerical values and logical rules within documents to create the model.
-
-### Solving and Execution
-- **Code Generation**: Writes complete computer scripts required to solve the linear optimization problem.
-- **Isolated Execution**: Runs scripts in a secure, isolated sandbox (with no network access and strict resource limits).
-- **Error Correction**: Detects and fixes script errors by automatically analyzing execution logs and tracebacks.
-
-### Analysis and Reporting
-- **Automated Plotting**: Generates charts and graphs based on solver data to show trends and distributions.
-- **Natural Language Analysis**: Summarizes results and explains the logic behind the calculated numbers.
-- **Document Export**: Generates reports with results, models, and charts.
-
-### User Management and Security
-- **Authentication**: Secure login via JWT and social providers (Google/GitHub).
-- **Verification & Recovery**: Email-based account activation and password resets.
-- **Data Privacy**: Strict isolation to ensure users only access their own files and results.
+- **Interactive Modeling**: Translates natural language into formal math models with professional rendering and chat-based refinement.
+- **Context-Aware RAG**: Automatically extracts business constraints and numerical data from uploaded PDFs and text files.
+- **Automated Solving**: Generates, executes, and self-corrects Python scripts to solve linear optimization problems.
+- **Secure Sandbox**: Runs AI-generated code in an isolated Docker environment with no network access and strict resource limits.
+- **Reporting & Visualization**: Delivers plain-English insights, automated charts, and downloadable PDF summaries.
+- **Identity & Security**: Secure access via JWT/OAuth2 (Google/GitHub) with email activation and strict data isolation.
 
 ## 🎥 Project Demo
 #### Login & registration
