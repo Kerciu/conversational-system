@@ -7,3 +7,17 @@ This project builds a smart system that takes a text description of a linear pro
 ## 🔧 Tech Stack
 ## 🏗️ Architecture
 ## 🚀 Installation & Execution
+Prerequisites:
+- Docker Engine
+- Docker Compose
+
+First download the repository:
+```bash 
+    git clone https://github.com/Kerciu/conversational-system.git
+    cd conversational-system
+```
+Take a look at `.env.example` and create `.env` file in the root directory with your API keys.
+You can start the application by running:
+```bash
+    docker compose up --build
+```
