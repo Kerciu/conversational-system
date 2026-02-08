@@ -1,12 +1,12 @@
-# 🧑‍💻🗨️🔮 Decisio.ai | Conversational System 
+# Decisio.ai | Conversational System 🧑‍💻🗨️🔮
 This project builds a smart system that takes a text description of a linear problem and extra documents (using RAG) to automatically create a mathematical model and runnable Python code. It runs the code, shows visualizations of the results, and lets users ask questions for interactive analysis. and lets users ask questions for interactive analysis. Users can also request changes at any stage.
 
 ## 🎥 Project Demo
 
-Registrarion, login & account verification <br/>
+### Registrarion, login & account verification <br/>
 <video controls src="docs/registration_demo.mp4" title="registration_demo"></video>
 
-Describing a problem, uploading documents, creating a mathematical model & downloading result visualization <br/>
+### Describing a problem, uploading documents, creating a mathematical model & downloading result visualization <br/>
 <video controls src="docs/conversation_demo.mp4" title="conversation_demo"></video>
 
 ## ⚙️ Core Functionalities 
