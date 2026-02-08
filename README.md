@@ -6,16 +6,18 @@
 [![Lines of Code](https://img.shields.io/badge/Lines%20of%20Code-~2.5k-green?logo=git)](https://github.com/Kerciu/conversational-system)
 [![License](https://img.shields.io/github/license/Kerciu/conversational-system?color=blue)](LICENSE)
 
+**Turn business problem descriptions into working optimization models in just one conversation!** 🪄
 
-This project builds a smart system that takes a text description of a linear problem and extra documents (using RAG) to automatically create a mathematical model and runnable Python code. It runs the code, shows visualizations of the results, and lets users ask questions for interactive analysis. Users can also request changes at any stage.
 
-## 🎥 Project Demo
+This project builds a smart system that takes a text description of a linear problem and extra documents (using RAG) to automatically create a mathematical model and runnable Python code. It runs the code, shows visualizations of the results, and lets users ask questions for interactive analysis. Users can also request changes at any stage of the process.
 
-### Registrarion, login & account verification <br/>
+## 🎥 Live Demo
+
+### 1. Registration, Login & Account Verification
 https://github.com/user-attachments/assets/f370e988-7ab6-43da-9ece-f2560fe14d29
 
 
-### Describing a problem, uploading documents, creating a mathematical model & downloading result visualization <br/>
+### 2. Problem Description → Model → Visualization + Download
 https://github.com/user-attachments/assets/680845dd-1ca8-49ea-bd14-804f434b8494
 
 ## ⚙️ Core Functionalities 
@@ -61,18 +63,19 @@ All AI-generated code runs in a specialized, fully isolated sandbox. It uses a *
 The system uses **RabbitMQ** to handle long AI tasks in the background. This keeps the website fast because it doesn't have to wait for the AI to finish. **Redis** is used to store temporary data like current job progress status (*'ok', 'pending', 'failed'*) and login security codes.
 
 ### CI/CD and Quality
-The project uses **GitHub Actions** (config in .github/workflows/build.yaml) to automate the build and deployment process. Every change triggers tests for backend (**Spring Boot + Maven**), frontend (**Next.js + ESLint**), and Python services (**agent/sandbox with Ruff + pytest**). We also spin up Postgres containers for integration tests and build **Docker** images at the end to ensure clean, consistent code quality across the repository.
+The project uses **GitHub Actions** (config in .github/workflows/build.yaml) to automate the build and deployment process. Every change triggers tests for backend (**Spring Boot + Maven**), frontend (**Next.js + ESLint**), and Python services (**agent/sandbox with Ruff + pytest**). We also set up **Postgres** containers for integration tests and build **Docker** images at the end to ensure clean, consistent code quality across the repository.
 
 ## 🚀 Installation & Execution
 Prerequisites:
 - Docker Engine
 - Docker Compose
 
-First clone the repository:
+Start by cloning the repository:
 ```bash 
     git clone https://github.com/Kerciu/conversational-system.git
     cd conversational-system
 ```
+
 Take a look at `.env.example` and create `.env` file in the root directory with your API keys.
 ```bash
     cp .env.example .env
@@ -82,4 +85,9 @@ Take a look at `.env.example` and create `.env` file in the root directory with 
 Start the application by running:
 ```bash
     docker compose up --build
+```
+Finally, go to http://localhost:3000. <br/><br/>
+Stop and clean:
+```bash
+    docker compose down -v  # removes volumes
 ```
