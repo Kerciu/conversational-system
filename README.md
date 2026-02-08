@@ -5,6 +5,21 @@ This project builds a smart system that takes a text description of a linear pro
 ## 🎥 Project Demo
 
 ## 🔧 Tech Stack
+[![My Skills](https://skillicons.dev/icons?i=java,spring,python,nextjs,postgresql,redis,rabbitmq,docker,git,githubactions)](https://skillicons.dev)
+
+#### Backend
+- Java + Spring Boot
+- Python (Langchain, Pulp)
+#### Frontend
+- Next.js
+#### Database & Queue
+- PostgreSQL
+- Redis
+- RabbitMQ
+#### DevOps
+- Docker
+- Git + GitHub Actions
+
 ## 🏗️ Architecture
 ## 🚀 Installation & Execution
 Prerequisites:
