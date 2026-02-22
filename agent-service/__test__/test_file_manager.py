@@ -1,7 +1,5 @@
 import base64
 import os
-
-import pytest
 from file_manager import extract_text_from_files, save_files_to_disk
 
 
