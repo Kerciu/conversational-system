@@ -12,9 +12,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.context.TestPropertySource;
 
 import java.util.Base64;
 import java.util.Map;
@@ -27,13 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * as base64 in JSON.
  */
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@TestPropertySource(properties = {
-        "spring.datasource.url=jdbc:postgresql://localhost:5432/test_db",
-        "spring.datasource.username=user",
-        "spring.datasource.password=password",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
-})
 public class MessageVisualizationTest {
 
     @Autowired

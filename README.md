@@ -3,7 +3,7 @@
 [![Contributors](https://img.shields.io/github/contributors/Kerciu/conversational-system?color=red)](https://github.com/Kerciu/conversational-system/graphs/contributors)
 [![Commit Activity](https://img.shields.io/badge/Commits-📈%20View%20Graph-orange)](https://github.com/Kerciu/conversational-system/graphs/commit-activity)
 [![Repo Size](https://img.shields.io/github/repo-size/Kerciu/conversational-system?color=yellow)](https://github.com/Kerciu/conversational-system)
-[![Lines of Code](https://img.shields.io/badge/Lines%20of%20Code-~2.5k-green?logo=git)](https://github.com/Kerciu/conversational-system)
+[![Lines of Code](https://img.shields.io/badge/Lines%20of%20Code-~32k-green?logo=git)](https://github.com/Kerciu/conversational-system)
 [![License](https://img.shields.io/github/license/Kerciu/conversational-system?color=blue)](LICENSE)
 
 **Turn business problem descriptions into working optimization models in just one conversation!** 🪄
