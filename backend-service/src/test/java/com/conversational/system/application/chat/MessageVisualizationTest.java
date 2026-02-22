@@ -27,13 +27,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * as base64 in JSON.
  */
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@TestPropertySource(properties = {
-        "spring.datasource.url=jdbc:postgresql://localhost:5432/test_db",
-        "spring.datasource.username=user",
-        "spring.datasource.password=password",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
-})
 public class MessageVisualizationTest {
 
     @Autowired
